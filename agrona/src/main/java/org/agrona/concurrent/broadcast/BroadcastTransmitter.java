@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,8 @@ package org.agrona.concurrent.broadcast;
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.MemoryAccess;
+
+import java.lang.invoke.VarHandle;
 
 import static org.agrona.concurrent.broadcast.BroadcastBufferDescriptor.*;
 import static org.agrona.concurrent.broadcast.RecordDescriptor.*;
@@ -128,7 +129,7 @@ public class BroadcastTransmitter
     private void signalTailIntent(final AtomicBuffer buffer, final long newTail)
     {
         buffer.putLongOrdered(tailIntentCountIndex, newTail);
-        MemoryAccess.releaseFence();
+        VarHandle.releaseFence();
     }
 
     private static void insertPaddingRecord(final AtomicBuffer buffer, final int recordOffset, final int length)

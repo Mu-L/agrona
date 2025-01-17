@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ import java.util.Map.Entry;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class Object2ObjectHashMapTest
 {
@@ -188,5 +189,20 @@ class Object2ObjectHashMapTest
         map.keySet().forEach(copyTwo::add);
 
         assertEquals(copyTwo, copyOne);
+    }
+
+    @Test
+    void shouldCopyConstructAndBeEqual()
+    {
+        final int[] testEntries = { 3, 1, 19, 7, 11, 12, 7 };
+
+        final Object2ObjectHashMap<String, Integer> map = new Object2ObjectHashMap<>();
+        for (final int testEntry : testEntries)
+        {
+            map.put(String.valueOf(testEntry), testEntry);
+        }
+
+        final Object2ObjectHashMap<String, Integer> mapCopy = new Object2ObjectHashMap<>(map);
+        assertEquals(map, mapCopy);
     }
 }

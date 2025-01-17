@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,12 @@
 package org.agrona.concurrent;
 
 import org.agrona.concurrent.status.StatusIndicatorReader;
-import org.agrona.hints.ThreadHints;
 
 import java.util.concurrent.locks.LockSupport;
 
 /**
  * {@link IdleStrategy} which can be controlled by a counter so its mode of operation can be switched between
- * doing nothing (NOOP), busy spinning by calling {@link ThreadHints#onSpinWait()}, yielding by calling
+ * doing nothing (NOOP), busy spinning by calling {@link Thread#onSpinWait()}, yielding by calling
  * {@link Thread#yield()}, or sleeping for the minimum period by calling {@link LockSupport#parkNanos(long)} when
  * work count is zero, so it idles.
  */
@@ -73,7 +72,7 @@ public final class ControllableIdleStrategy implements IdleStrategy
     }
 
     /**
-     * Idle based on current status indication value
+     * Idle based on current status indication value.
      *
      * @param workCount performed in last duty cycle.
      * @see IdleStrategy#idle(int)
@@ -101,7 +100,7 @@ public final class ControllableIdleStrategy implements IdleStrategy
                 break;
 
             case BUSY_SPIN:
-                ThreadHints.onSpinWait();
+                Thread.onSpinWait();
                 break;
 
             case YIELD:

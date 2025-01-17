@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,13 @@ package org.agrona.agent;
 public class BufferAlignmentException extends RuntimeException
 {
     private static final long serialVersionUID = 4196043654912374628L;
+    /**
+     * Index of the unaligned access.
+     */
     private final int index;
+    /**
+     * Address offset of the unaligned access.
+     */
     private final long addressOffset;
 
     /**

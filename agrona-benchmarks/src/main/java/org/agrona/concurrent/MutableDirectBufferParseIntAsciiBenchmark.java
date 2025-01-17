@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,13 @@ public class MutableDirectBufferParseIntAsciiBenchmark
     private final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocateDirect(CAPACITY));
     private final ExpandableArrayBuffer expandableArrayBuffer = new ExpandableArrayBuffer(CAPACITY);
     private final ExpandableDirectByteBuffer expandableDirectByteBuffer = new ExpandableDirectByteBuffer(CAPACITY);
+
+    /**
+     * Default constructor.
+     */
+    public MutableDirectBufferParseIntAsciiBenchmark()
+    {
+    }
 
     /**
      * Setup test data.
@@ -94,7 +101,7 @@ public class MutableDirectBufferParseIntAsciiBenchmark
      * @return parsed value.
      */
     @Benchmark
-    public int integerParseInt()
+    public int integerParseInt() throws NumberFormatException
     {
         return Integer.parseInt(value);
     }

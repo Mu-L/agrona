@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,21 +15,16 @@
  */
 package org.agrona;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 
-import static java.lang.invoke.MethodType.methodType;
 import static org.agrona.BitUtil.isPowerOfTwo;
-import static org.agrona.UnsafeAccess.UNSAFE;
 
 /**
  * Common functions for buffer implementations.
  */
-@SuppressWarnings("deprecation")
 public final class BufferUtil
 {
     /**
@@ -45,7 +40,7 @@ public final class BufferUtil
     /**
      * Byte array base offset.
      */
-    public static final long ARRAY_BASE_OFFSET = UNSAFE.arrayBaseOffset(byte[].class);
+    public static final long ARRAY_BASE_OFFSET = UnsafeApi.arrayBaseOffset(byte[].class);
 
     /**
      * Offset of the {@code java.nio.ByteBuffer#hb} field.
@@ -62,44 +57,17 @@ public final class BufferUtil
      */
     public static final long BYTE_BUFFER_ADDRESS_FIELD_OFFSET;
 
-    private static final MethodHandle INVOKE_CLEANER;
-    private static final MethodHandle GET_CLEANER;
-    private static final MethodHandle CLEAN;
-
     static
     {
         try
         {
-            BYTE_BUFFER_HB_FIELD_OFFSET = UNSAFE.objectFieldOffset(
+            BYTE_BUFFER_HB_FIELD_OFFSET = UnsafeApi.objectFieldOffset(
                 ByteBuffer.class.getDeclaredField("hb"));
 
-            BYTE_BUFFER_OFFSET_FIELD_OFFSET = UNSAFE.objectFieldOffset(
+            BYTE_BUFFER_OFFSET_FIELD_OFFSET = UnsafeApi.objectFieldOffset(
                 ByteBuffer.class.getDeclaredField("offset"));
 
-            BYTE_BUFFER_ADDRESS_FIELD_OFFSET = UNSAFE.objectFieldOffset(Buffer.class.getDeclaredField("address"));
-
-            MethodHandle invokeCleaner = null;
-            MethodHandle getCleaner = null;
-            MethodHandle clean = null;
-            final MethodHandles.Lookup lookup = MethodHandles.lookup();
-
-            try
-            {
-                invokeCleaner = lookup.findVirtual(
-                    UNSAFE.getClass(), "invokeCleaner", methodType(void.class, ByteBuffer.class));
-            }
-            catch (final NoSuchMethodException ex)
-            {
-                // JDK 8 fallback
-                final Class<?> directBuffer = Class.forName("sun.nio.ch.DirectBuffer");
-                final Class<?> cleaner = Class.forName("sun.misc.Cleaner");
-                getCleaner = lookup.findVirtual(directBuffer, "cleaner", methodType(cleaner));
-                clean = lookup.findVirtual(cleaner, "clean", methodType(void.class));
-            }
-
-            INVOKE_CLEANER = invokeCleaner;
-            GET_CLEANER = getCleaner;
-            CLEAN = clean;
+            BYTE_BUFFER_ADDRESS_FIELD_OFFSET = UnsafeApi.objectFieldOffset(Buffer.class.getDeclaredField("address"));
         }
         catch (final Exception ex)
         {
@@ -158,7 +126,7 @@ public final class BufferUtil
             throw new IllegalArgumentException("buffer.isDirect() must be true");
         }
 
-        return UNSAFE.getLong(buffer, BYTE_BUFFER_ADDRESS_FIELD_OFFSET);
+        return UnsafeApi.getLong(buffer, BYTE_BUFFER_ADDRESS_FIELD_OFFSET);
     }
 
     /**
@@ -174,7 +142,7 @@ public final class BufferUtil
             throw new IllegalArgumentException("buffer must wrap an array");
         }
 
-        return (byte[])UNSAFE.getObject(buffer, BYTE_BUFFER_HB_FIELD_OFFSET);
+        return (byte[])UnsafeApi.getReference(buffer, BYTE_BUFFER_HB_FIELD_OFFSET);
     }
 
     /**
@@ -185,7 +153,7 @@ public final class BufferUtil
      */
     public static int arrayOffset(final ByteBuffer buffer)
     {
-        return UNSAFE.getInt(buffer, BYTE_BUFFER_OFFSET_FIELD_OFFSET);
+        return UnsafeApi.getInt(buffer, BYTE_BUFFER_OFFSET_FIELD_OFFSET);
     }
 
     /**
@@ -243,25 +211,7 @@ public final class BufferUtil
     {
         if (null != buffer && buffer.isDirect())
         {
-            try
-            {
-                if (null != INVOKE_CLEANER) // JDK 9+
-                {
-                    INVOKE_CLEANER.invokeExact(UNSAFE, buffer);
-                }
-                else // JDK 8
-                {
-                    final Object cleaner = GET_CLEANER.invoke(buffer);
-                    if (null != cleaner)
-                    {
-                        CLEAN.invoke(cleaner);
-                    }
-                }
-            }
-            catch (final Throwable t)
-            {
-                LangUtil.rethrowUnchecked(t);
-            }
+            UnsafeApi.invokeCleaner(buffer);
         }
     }
 }

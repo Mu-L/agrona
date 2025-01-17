@@ -1,6 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
- * Copyright 2016 Gil Tene
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.agrona.hints;
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
 
-import org.junit.jupiter.api.Test;
-
-class ThreadHintsTest
-{
-    @Test
-    void shouldDoNothingOnSpinWait()
-    {
-        for (int i = 0; i < 100; i++)
-        {
-            ThreadHints.onSpinWait();
-        }
-    }
+dependencies {
+    implementation libs.byteBuddy.gradle.plugin
+    compileOnly libs.findbugs
 }

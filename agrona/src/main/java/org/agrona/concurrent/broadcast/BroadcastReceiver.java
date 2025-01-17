@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ package org.agrona.concurrent.broadcast;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.MemoryAccess;
 
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.agrona.BitUtil.align;
@@ -191,7 +191,7 @@ public class BroadcastReceiver
      */
     public boolean validate()
     {
-        MemoryAccess.acquireFence();
+        VarHandle.acquireFence();
 
         return validate(cursor, buffer, capacity);
     }

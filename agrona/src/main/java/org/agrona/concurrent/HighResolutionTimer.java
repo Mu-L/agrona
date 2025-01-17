@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,15 @@ package org.agrona.concurrent;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Control the use of high resolution timers on Windows by a bit of hackery.
+ * Control the use of high-resolution timers on Windows by a bit of hackery.
  */
-public class HighResolutionTimer
+public final class HighResolutionTimer
 {
     private static final AtomicReference<Thread> THREAD = new AtomicReference<>();
+
+    private HighResolutionTimer()
+    {
+    }
 
     /**
      * Has the high resolution timer been enabled?

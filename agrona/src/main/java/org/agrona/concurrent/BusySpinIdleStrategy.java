@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 package org.agrona.concurrent;
-
-import org.agrona.hints.ThreadHints;
 
 /**
  * Busy spin strategy targeted at lowest possible latency. This strategy will monopolise a thread to achieve the lowest
@@ -35,6 +33,13 @@ public final class BusySpinIdleStrategy implements IdleStrategy
     public static final BusySpinIdleStrategy INSTANCE = new BusySpinIdleStrategy();
 
     /**
+     * Create a new instance.
+     */
+    public BusySpinIdleStrategy()
+    {
+    }
+
+    /**
      * <b>Note</b>: this implementation will result in no safepoint poll once inlined.
      * <p>
      * {@inheritDoc}
@@ -46,7 +51,7 @@ public final class BusySpinIdleStrategy implements IdleStrategy
             return;
         }
 
-        ThreadHints.onSpinWait();
+        Thread.onSpinWait();
     }
 
     /**
@@ -54,7 +59,7 @@ public final class BusySpinIdleStrategy implements IdleStrategy
      */
     public void idle()
     {
-        ThreadHints.onSpinWait();
+        Thread.onSpinWait();
     }
 
     /**

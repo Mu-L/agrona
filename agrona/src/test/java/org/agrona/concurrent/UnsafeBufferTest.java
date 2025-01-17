@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -318,8 +318,7 @@ class UnsafeBufferTest extends MutableDirectBufferTests
         when(mockBuffer.capacity()).thenReturn(99);
         final byte[] mockByteArray = new byte[5];
         when(mockBuffer.byteArray()).thenReturn(mockByteArray);
-        final ByteBuffer mockByteBuffer = mock(ByteBuffer.class);
-        when(mockBuffer.byteBuffer()).thenReturn(mockByteBuffer);
+        when(mockBuffer.byteBuffer()).thenReturn(ByteBuffer.allocate(4));
         return Arrays.asList(
             new ExpandableArrayBuffer(64),
             new ExpandableDirectByteBuffer(64),

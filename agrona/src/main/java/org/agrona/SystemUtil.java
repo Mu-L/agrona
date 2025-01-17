@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
-import java.lang.reflect.Method;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.Properties;
@@ -60,37 +60,7 @@ public final class SystemUtil
     {
         OS_NAME = System.getProperty("os.name").toLowerCase();
         OS_ARCH = System.getProperty("os.arch", "unknown");
-
-        long pid = PID_NOT_FOUND;
-        try
-        {
-            final Class<?> processHandleClass = Class.forName("java.lang.ProcessHandle");
-            final Method currentMethod = processHandleClass.getMethod("current");
-            final Object processHandle = currentMethod.invoke(null);
-            final Method pidMethod = processHandleClass.getMethod("pid");
-            pid = (Long)pidMethod.invoke(processHandle);
-        }
-        catch (final Throwable ignore)
-        {
-            try
-            {
-                final String pidPropertyValue = System.getProperty(SUN_PID_PROP_NAME);
-                if (null != pidPropertyValue)
-                {
-                    pid = Long.parseLong(pidPropertyValue);
-                }
-                else
-                {
-                    final String jvmName = ManagementFactory.getRuntimeMXBean().getName();
-                    pid = Long.parseLong(jvmName.split("@")[0]);
-                }
-            }
-            catch (final Throwable ignore2)
-            {
-            }
-        }
-
-        PID = pid;
+        PID = ProcessHandle.current().pid();
     }
 
     private SystemUtil()
@@ -183,13 +153,13 @@ public final class SystemUtil
     }
 
     /**
-     * Return the system property for java.io.tmpdir ensuring a {@link File#separator} is at the end.
+     * The system property for <code>java.io.tmpdir</code> and ensuring a {@link File#separator} is at the end.
      *
      * @return tmp directory for the runtime.
      */
     public static String tmpDirName()
     {
-        // lgtm [java/local-temp-file-or-directory-information-disclosure]
+        //codeql[java/local-temp-file-or-directory-information-disclosure]
         String tmpDirName = System.getProperty("java.io.tmpdir");
         if (!tmpDirName.endsWith(File.separator))
         {
@@ -285,7 +255,7 @@ public final class SystemUtil
             }
         }
 
-        try (InputStream in = new URL(filenameOrUrl).openStream())
+        try (InputStream in = new URI(filenameOrUrl).toURL().openStream())
         {
             loadProperties(propertyAction, in);
         }
@@ -567,8 +537,8 @@ public final class SystemUtil
                         }
                         break;
 
-                    default:
                     case REPLACE:
+                    default:
                         systemProperties.setProperty((String)k, (String)v);
                         break;
                 }

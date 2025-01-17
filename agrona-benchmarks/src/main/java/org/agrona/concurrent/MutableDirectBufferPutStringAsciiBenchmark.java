@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,13 @@ public class MutableDirectBufferPutStringAsciiBenchmark
     private final CharSequence charSequence = new StringBuilder(
         "Cupcake ipsum dolor sit amet chupa chups sweet jelly topping.");
     private final String string = charSequence.toString();
+
+    /**
+     * Default constructor.
+     */
+    public MutableDirectBufferPutStringAsciiBenchmark()
+    {
+    }
 
     /**
      * Benchmark the {@link UnsafeBuffer#putStringAscii(int, String)} method.
@@ -119,6 +126,7 @@ public class MutableDirectBufferPutStringAsciiBenchmark
      * Benchmark entry point.
      *
      * @param args program arguments (ignored)
+     * @throws RunnerException in case of configuration error.
      */
     public static void main(final String[] args) throws RunnerException
     {

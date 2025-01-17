@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ public class CountedErrorHandler implements ErrorHandler, AutoCloseable
     }
 
     /**
-     * Close so that {@link #onError(Throwable)} will not delegate and instead print to {@link System#err}
+     * Close so that {@link #onError(Throwable)} will not delegate and instead print to {@link System#err}.
      */
     public void close()
     {

@@ -1,25 +1,26 @@
 name: "CodeQL"
 
 on:
+  workflow_call:
   workflow_dispatch:
   push:
     branches:
       - master
-      - 'release/**'
+      - release/**
   pull_request:
     types: [opened, synchronize]
     branches:
       - master
-      - 'release/**'
+      - release/**
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -32,18 +33,50 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           queries: +security-and-quality
+          config-file: ./.github/codeql/codeql-config.yml
+          packs: "codeql/${{ matrix.language }}-queries:AlertSuppression.ql"
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
+        uses: github/codeql-action/autobuild@v3
+        if: ${{ matrix.language == 'java' }}
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        id: analyze
+        uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
+          upload: false
+          output: sarif-results
+
+      - name: Upload SARIF
+        id: upload
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sarif-results/${{ matrix.language }}.sarif
+          wait-for-processing: true
+
+      # optional: for debugging the uploaded sarif
+      - name: Upload loc as a Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarif-results-${{ matrix.language }}
+          path: sarif-results
+          retention-days: 1
+
+      - name: Dismiss alerts
+        if: github.ref == 'refs/heads/master'
+        uses: advanced-security/dismiss-alerts@v1
+        with:
+          sarif-id: ${{ steps.upload.outputs.sarif-id }}
+          sarif-file: sarif-results/${{ matrix.language }}.sarif
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

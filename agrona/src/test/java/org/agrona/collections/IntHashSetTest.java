@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 package org.agrona.collections;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 
 import java.util.Arrays;
@@ -26,6 +28,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
@@ -35,7 +38,6 @@ import static org.agrona.collections.IntHashSet.MISSING_VALUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -786,33 +788,6 @@ class IntHashSetTest
         }
 
         assertThat(testSet, hasSize(10_000));
-
-        int distinctElements = 0;
-        for (final int ignore : testSet)
-        {
-            distinctElements++;
-        }
-
-        assertThat(distinctElements, is(10_000));
-    }
-
-    @Test
-    void hashCodeAccountsForMissingValue()
-    {
-        addTwoElements(testSet);
-        testSet.add(MISSING_VALUE);
-
-        final IntHashSet other = new IntHashSet(100);
-        addTwoElements(other);
-
-        assertNotEquals(testSet.hashCode(), other.hashCode());
-
-        other.add(MISSING_VALUE);
-        assertEquals(testSet.hashCode(), other.hashCode());
-
-        testSet.remove(MISSING_VALUE);
-
-        assertNotEquals(testSet.hashCode(), other.hashCode());
     }
 
     @Test
@@ -863,8 +838,8 @@ class IntHashSetTest
             set.add(testEntry);
         }
 
-        final String mapAsAString = "{0, 12, 3, 7, 11, 1, 19, -1}";
-        assertThat(set.toString(), equalTo(mapAsAString));
+        final String mapAsAString = "{-1, 12, 3, 7, 11, 1, 19, 0}";
+        assertEquals(mapAsAString, set.toString());
     }
 
     @Test
@@ -1035,7 +1010,7 @@ class IntHashSetTest
     @Test
     void retainAllCollectionRemovesMissingValueWhichWasAddedToTheSet()
     {
-        final List<Integer> coll = Arrays.asList(42, 42, 42, 0, 500);
+        final List<Integer> coll = Arrays.asList(42, 42, 42, 500);
         testSet.add(MISSING_VALUE);
         testSet.add(42);
 
@@ -1086,14 +1061,16 @@ class IntHashSetTest
     void retainAllRemovesMissingValueWhichWasAddedToTheSet()
     {
         final IntHashSet coll = new IntHashSet(5);
-        coll.addAll(Arrays.asList(42, 42, 42, 0, 500));
+        coll.addAll(Arrays.asList(42, 42, 42, -1, 500));
         testSet.add(MISSING_VALUE);
         testSet.add(42);
+        testSet.add(500);
 
         assertTrue(testSet.retainAll(coll));
 
-        assertEquals(1, testSet.size());
+        assertEquals(2, testSet.size());
         assertTrue(testSet.contains(42));
+        assertTrue(testSet.contains(500));
         assertFalse(testSet.contains(MISSING_VALUE));
     }
 
@@ -1132,6 +1109,7 @@ class IntHashSetTest
         assertEquals(2, testSet.size());
         assertTrue(testSet.contains(1));
         assertTrue(testSet.contains(2));
+        assertFalse(testSet.contains(MISSING_VALUE));
     }
 
     @Test
@@ -1153,17 +1131,17 @@ class IntHashSetTest
     @Test
     void removeIfIntDeletesAllMatchingValues()
     {
-        final IntPredicate filter = (v) -> v < 0;
+        final IntPredicate filter = (v) -> v < 1;
         testSet.add(1);
+        testSet.add(2);
         testSet.add(-2);
-        testSet.add(0);
         testSet.add(MISSING_VALUE);
 
         assertTrue(testSet.removeIfInt(filter));
 
         assertEquals(2, testSet.size());
         assertTrue(testSet.contains(1));
-        assertTrue(testSet.contains(0));
+        assertTrue(testSet.contains(2));
         assertFalse(testSet.contains(MISSING_VALUE));
     }
 
@@ -1189,15 +1167,15 @@ class IntHashSetTest
         final Predicate<Integer> filter = (v) -> v < 0;
         testSet.add(1);
         testSet.add(-2);
-        testSet.add(0);
         testSet.add(MISSING_VALUE);
+        testSet.add(-1);
 
         assertTrue(testSet.removeIf(filter));
 
         assertEquals(2, testSet.size());
         assertTrue(testSet.contains(1));
-        assertTrue(testSet.contains(0));
-        assertFalse(testSet.contains(MISSING_VALUE));
+        assertTrue(testSet.contains(MISSING_VALUE));
+        assertFalse(testSet.contains(-1));
     }
 
     @Test
@@ -1224,18 +1202,18 @@ class IntHashSetTest
     }
 
     @Test
-    void addAllShouldAddMissingVaueFromAnotherSet()
+    void addAllShouldAddMissingValueFromAnotherSet()
     {
         final IntHashSet other = new IntHashSet(5);
         other.add(1);
         other.add(2);
         other.add(3);
-        testSet.add(0);
+        testSet.add(-1);
 
         assertTrue(testSet.addAll(other));
 
         assertEquals(4, testSet.size());
-        for (int i = 0; i <= 3; i++)
+        for (int i = 1; i <= 3; i++)
         {
             assertTrue(testSet.contains(i));
         }
@@ -1267,6 +1245,74 @@ class IntHashSetTest
         testSet.add(9);
 
         assertTrue(testSet.containsAll(other));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = { 1, 10, 100, 1000 })
+    public void retainAllWithAnotherIntHashSet(final int capacity)
+    {
+        final IntHashSet set1 = new IntHashSet(capacity);
+        set1.add(9);
+        for (int i = 0; i < capacity; i++)
+        {
+            set1.add(ThreadLocalRandom.current().nextInt(10, Integer.MAX_VALUE));
+        }
+        set1.add(MISSING_VALUE);
+
+        final IntHashSet set2 = new IntHashSet();
+        set2.add(8);
+        set2.add(9);
+
+        assertTrue(set1.retainAll(set2));
+
+        assertEquals(1, set1.size());
+        assertTrue(set1.contains(9));
+        assertFalse(set1.contains(MISSING_VALUE));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = { 1, 10, 100, 1000 })
+    public void retainAllWithCollection(final int capacity)
+    {
+        final IntHashSet set = new IntHashSet(capacity);
+        set.add(9);
+        for (int i = 0; i < capacity; i++)
+        {
+            set.add(ThreadLocalRandom.current().nextInt(10, Integer.MAX_VALUE));
+        }
+        set.add(MISSING_VALUE);
+
+        final List<Integer> list = Arrays.asList(8, 9);
+
+        assertTrue(set.retainAll(list));
+
+        assertEquals(1, set.size());
+        assertTrue(set.contains(9));
+        assertFalse(set.contains(MISSING_VALUE));
+    }
+
+    @Test
+    public void removeIfIntUsingDefaults()
+    {
+        final IntHashSet set = new IntHashSet();
+        set.add(4);
+        set.add(5);
+
+        assertTrue(set.removeIfInt(i -> true));
+
+        assertEquals(0, set.size());
+    }
+
+    @Test
+    public void removeIfUsingDefaults()
+    {
+        final IntHashSet set = new IntHashSet();
+        set.add(4);
+        set.add(5);
+
+        assertTrue(set.removeIf(i -> true));
+
+        assertEquals(0, set.size());
     }
 
     private static void addTwoElements(final IntHashSet obj)

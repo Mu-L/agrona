@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,10 +51,14 @@ import net.bytebuddy.utility.JavaModule;
  * Using this agent will avoid such crashes, but it has a performance overhead and should only be used for testing
  * and debugging.
  */
-public class BufferAlignmentAgent
+public final class BufferAlignmentAgent
 {
     private static ResettableClassFileTransformer alignmentTransformer;
     private static Instrumentation instrumentation;
+
+    private BufferAlignmentAgent()
+    {
+    }
 
     /**
      * Invoked when the agent is launched with the JVM and before the main application.

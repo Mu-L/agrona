@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ public class ExpandableDirectBufferOutputStream extends OutputStream
      *
      * @param buffer to wrap.
      */
+    @SuppressWarnings("this-escape")
     public ExpandableDirectBufferOutputStream(final MutableDirectBuffer buffer)
     {
         wrap(buffer, 0);
@@ -52,6 +53,7 @@ public class ExpandableDirectBufferOutputStream extends OutputStream
      * @param buffer to wrap.
      * @param offset at which the puts will occur.
      */
+    @SuppressWarnings("this-escape")
     public ExpandableDirectBufferOutputStream(final MutableDirectBuffer buffer, final int offset)
     {
         wrap(buffer, offset);

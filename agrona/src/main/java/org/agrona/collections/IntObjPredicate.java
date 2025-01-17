@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package org.agrona.collections;
 
 /**
  * This is an (int, Object) primitive specialisation of a BiPredicate.
+ *
+ * @param <T> the type of the input to the predicate.
  */
 @FunctionalInterface
 public interface

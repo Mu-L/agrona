@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,36 +15,40 @@
  */
 package org.agrona.concurrent;
 
+import org.agrona.collections.MutableBoolean;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.stubbing.Answer;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 import java.util.concurrent.CountDownLatch;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.agrona.concurrent.SigInt.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.mockito.Mockito.*;
 
 class SigIntTest
 {
     @Test
+    void throwsNullPointerExceptionIfNameIsNull()
+    {
+        assertThrowsExactly(NullPointerException.class, () -> register(null, () -> {}));
+    }
+
+    @Test
     void throwsNullPointerExceptionIfRunnableIsNull()
     {
-        assertThrowsExactly(NullPointerException.class, () -> SigInt.register(null));
+        assertThrowsExactly(NullPointerException.class, () -> register(null));
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "INT", "TERM" })
-    void shouldInstallHandlerThatWillDelegateToTheExistingHandler(final String name) throws InterruptedException
+    void shouldReplaceExistingSignalHandler(final String name) throws Exception
     {
         final Thread.UncaughtExceptionHandler defaultUncaughtExceptionHandler =
             Thread.getDefaultUncaughtExceptionHandler();
-        final Signal signal = new Signal(name);
-        final SignalHandler originalHandler = Signal.handle(signal, sig -> {});
-
         try
         {
             final CountDownLatch executed = new CountDownLatch(1);
@@ -55,35 +59,46 @@ class SigIntTest
                 return null;
             }).when(exceptionHandler).uncaughtException(any(), any());
             Thread.setDefaultUncaughtExceptionHandler(exceptionHandler);
-            final SignalHandler oldHandler = mock(SignalHandler.class);
-            final NumberFormatException secondException = new NumberFormatException("NaN");
-            doThrow(secondException).when(oldHandler).handle(signal);
-            Signal.handle(signal, oldHandler);
+
+            final MutableBoolean first = new MutableBoolean(false);
+            register(name, () -> first.set(true));
 
             final Runnable newHandler = mock(Runnable.class);
             final IllegalStateException firstException = new IllegalStateException("something went wrong");
             doThrow(firstException).when(newHandler).run();
 
-            SigInt.register(name, newHandler);
+            register(name, newHandler);
 
-            Signal.raise(signal);
+            raiseSignal(name);
 
             executed.await();
 
-            final InOrder inOrder = inOrder(newHandler, oldHandler, exceptionHandler);
+            final InOrder inOrder = inOrder(newHandler, exceptionHandler);
             inOrder.verify(newHandler).run();
-            inOrder.verify(oldHandler).handle(signal);
             inOrder.verify(exceptionHandler).uncaughtException(any(), eq(firstException));
             inOrder.verifyNoMoreInteractions();
 
-            final Throwable[] suppressed = firstException.getSuppressed();
-            assertEquals(1, suppressed.length);
-            assertSame(secondException, suppressed[0]);
+            assertFalse(first.get());
         }
         finally
         {
             Thread.setDefaultUncaughtExceptionHandler(defaultUncaughtExceptionHandler);
-            Signal.handle(signal, originalHandler);
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "INT" })
+    void shouldReplaceExistingSignalHandlerNoException(final String name) throws Exception
+    {
+        final MutableBoolean first = new MutableBoolean(false);
+        register(name, () -> first.set(true));
+
+        final CountDownLatch executed = new CountDownLatch(1);
+        register(name, executed::countDown);
+
+        raiseSignal(name);
+
+        executed.await();
+        assertFalse(first.get());
     }
 }

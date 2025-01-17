@@ -45,7 +45,7 @@ Build the project with [Gradle](http://gradle.org/) using this [build.gradle](ht
 
 You require the following to build Agrona:
 
-* The Latest release of Java 8. Agrona is tested with Java 8, 11, 16 and 17-ea.
+* The Latest release of Java 17. Agrona is tested with Java 17 and 21.
 
 Full clean and build:
 
@@ -53,7 +53,7 @@ Full clean and build:
 
 License (See LICENSE file for full license)
 -------------------------------------------
-Copyright 2014-2023 Real Logic Limited.
+Copyright 2014-2025 Real Logic Limited.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

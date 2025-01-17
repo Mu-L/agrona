@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,11 @@
 package org.agrona.concurrent;
 
 import org.agrona.BitUtil;
+import org.agrona.UnsafeApi;
 
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
-import static org.agrona.UnsafeAccess.UNSAFE;
 
 /**
  * Pad out a cacheline to the left of a producer fields to prevent false sharing.
@@ -91,8 +90,10 @@ abstract class AbstractConcurrentArrayQueuePadding3 extends AbstractConcurrentAr
 
 /**
  * Left over immutable queue fields.
+ *
+ * @param <E> type of the queue elements.
  */
-@SuppressWarnings("deprecation")
+@SuppressWarnings({ "deprecation", "removal" })
 public abstract class AbstractConcurrentArrayQueue<E>
     extends AbstractConcurrentArrayQueuePadding3
     implements QueuedPipe<E>
@@ -122,12 +123,14 @@ public abstract class AbstractConcurrentArrayQueue<E>
     {
         try
         {
-            BUFFER_ARRAY_BASE = UNSAFE.arrayBaseOffset(Object[].class);
-            SHIFT_FOR_SCALE = BitUtil.calculateShiftForScale(UNSAFE.arrayIndexScale(Object[].class));
-            TAIL_OFFSET = UNSAFE.objectFieldOffset(AbstractConcurrentArrayQueueProducer.class.getDeclaredField("tail"));
-            SHARED_HEAD_CACHE_OFFSET = UNSAFE.objectFieldOffset(
+            BUFFER_ARRAY_BASE = UnsafeApi.arrayBaseOffset(Object[].class);
+            SHIFT_FOR_SCALE = BitUtil.calculateShiftForScale(UnsafeApi.arrayIndexScale(Object[].class));
+            TAIL_OFFSET =
+                UnsafeApi.objectFieldOffset(AbstractConcurrentArrayQueueProducer.class.getDeclaredField("tail"));
+            SHARED_HEAD_CACHE_OFFSET = UnsafeApi.objectFieldOffset(
                 AbstractConcurrentArrayQueueProducer.class.getDeclaredField("sharedHeadCache"));
-            HEAD_OFFSET = UNSAFE.objectFieldOffset(AbstractConcurrentArrayQueueConsumer.class.getDeclaredField("head"));
+            HEAD_OFFSET =
+                UnsafeApi.objectFieldOffset(AbstractConcurrentArrayQueueConsumer.class.getDeclaredField("head"));
         }
         catch (final Exception ex)
         {
@@ -194,7 +197,7 @@ public abstract class AbstractConcurrentArrayQueue<E>
     @SuppressWarnings("unchecked")
     public E peek()
     {
-        return (E)UNSAFE.getObjectVolatile(buffer, sequenceToBufferOffset(head, capacity - 1));
+        return (E)UnsafeApi.getReferenceVolatile(buffer, sequenceToBufferOffset(head, capacity - 1));
     }
 
     /**
@@ -253,7 +256,7 @@ public abstract class AbstractConcurrentArrayQueue<E>
 
         for (long i = head, limit = tail; i < limit; i++)
         {
-            final Object e = UNSAFE.getObjectVolatile(buffer, sequenceToBufferOffset(i, mask));
+            final Object e = UnsafeApi.getReferenceVolatile(buffer, sequenceToBufferOffset(i, mask));
             if (o.equals(e))
             {
                 return true;

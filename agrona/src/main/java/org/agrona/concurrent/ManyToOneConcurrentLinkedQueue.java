@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +15,17 @@
  */
 package org.agrona.concurrent;
 
+import org.agrona.UnsafeApi;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 
-import static org.agrona.UnsafeAccess.UNSAFE;
-
 /**
  * Pad out a cache line to the left of a tail to prevent false sharing.
  */
-@SuppressWarnings("deprecation")
+@SuppressWarnings({ "deprecation", "removal" })
 abstract class ManyToOneConcurrentLinkedQueuePadding1
 {
     /**
@@ -53,7 +53,7 @@ abstract class ManyToOneConcurrentLinkedQueuePadding1
 
         void nextOrdered(final Node<E> next)
         {
-            UNSAFE.putOrderedObject(this, NEXT_OFFSET, next);
+            UnsafeApi.putReferenceRelease(this, NEXT_OFFSET, next);
         }
     }
 
@@ -61,9 +61,11 @@ abstract class ManyToOneConcurrentLinkedQueuePadding1
     {
         try
         {
-            HEAD_OFFSET = UNSAFE.objectFieldOffset(ManyToOneConcurrentLinkedQueueHead.class.getDeclaredField("head"));
-            TAIL_OFFSET = UNSAFE.objectFieldOffset(ManyToOneConcurrentLinkedQueueTail.class.getDeclaredField("tail"));
-            NEXT_OFFSET = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("next"));
+            HEAD_OFFSET = UnsafeApi.objectFieldOffset(
+                ManyToOneConcurrentLinkedQueueHead.class.getDeclaredField("head"));
+            TAIL_OFFSET = UnsafeApi.objectFieldOffset(
+                ManyToOneConcurrentLinkedQueueTail.class.getDeclaredField("tail"));
+            NEXT_OFFSET = UnsafeApi.objectFieldOffset(Node.class.getDeclaredField("next"));
         }
         catch (final Exception ex)
         {
@@ -79,6 +81,7 @@ abstract class ManyToOneConcurrentLinkedQueuePadding1
 
 /**
  * Value for the tail that is expected to be padded.
+ * @param <E> type of the elements stored in the {@link java.util.Queue}.
  */
 abstract class ManyToOneConcurrentLinkedQueueTail<E> extends ManyToOneConcurrentLinkedQueuePadding1
 {
@@ -90,6 +93,7 @@ abstract class ManyToOneConcurrentLinkedQueueTail<E> extends ManyToOneConcurrent
 
 /**
  * Pad out a cache line between the tail and the head to prevent false sharing.
+ * @param <E> type of the elements stored in the {@link java.util.Queue}.
  */
 abstract class ManyToOneConcurrentLinkedQueuePadding2<E> extends ManyToOneConcurrentLinkedQueueTail<E>
 {
@@ -101,6 +105,7 @@ abstract class ManyToOneConcurrentLinkedQueuePadding2<E> extends ManyToOneConcur
 
 /**
  * Value for the head that is expected to be padded.
+ * @param <E> type of the elements stored in the {@link java.util.Queue}.
  */
 abstract class ManyToOneConcurrentLinkedQueueHead<E> extends ManyToOneConcurrentLinkedQueuePadding2<E>
 {
@@ -118,17 +123,18 @@ abstract class ManyToOneConcurrentLinkedQueueHead<E> extends ManyToOneConcurrent
  * MPSC linked queue</a>.
  * <p>
  * <b>Note:</b> This queue breaks the contract for peek and poll in that it can return null when the queue has no item
- * available but size could be greater than zero if an offer is in progress. This is due to the offer being a multi-step
- * process which can start and be interrupted before completion, the thread will later be resumed and the offer process
- * completes. Other methods, such as peek and poll, could spin internally waiting on the offer to complete to provide
- * sequentially consistency across methods but this can have a detrimental effect in a resource starved system. This
- * internal spinning eats up a CPU core and prevents other threads making progress resulting in latency spikes. To
+ * available but size could be greater than zero if an offer is in progress. This is due to the offer being a multiple
+ * step process which can start and be interrupted before completion, the thread will later be resumed and the offer
+ * process completes. Other methods, such as peek and poll, could spin internally waiting on the offer to complete to
+ * provide sequentially consistency across methods but this can have a detrimental effect in a resource starved system.
+ * This internal spinning eats up a CPU core and prevents other threads making progress resulting in latency spikes. To
  * avoid this a more relaxed approach is taken in that an in-progress offer is not waited on to complete.
  * <p>
  * If you wish to check for empty then call {@link #isEmpty()} rather than {@link #size()} checking for zero.
  *
  * @param <E> element type in the queue.
  */
+@SuppressWarnings("removal")
 public class ManyToOneConcurrentLinkedQueue<E> extends ManyToOneConcurrentLinkedQueueHead<E> implements Queue<E>
 {
     byte p128, p129, p130, p131, p132, p133, p134, p135, p136, p137, p138, p139, p140, p142, p143, p144;
@@ -141,10 +147,11 @@ public class ManyToOneConcurrentLinkedQueue<E> extends ManyToOneConcurrentLinked
     /**
      * Constructs an empty queue.
      */
+    @SuppressWarnings("this-escape")
     public ManyToOneConcurrentLinkedQueue()
     {
         headOrdered(empty);
-        UNSAFE.putOrderedObject(this, TAIL_OFFSET, empty);
+        UnsafeApi.putReferenceRelease(this, TAIL_OFFSET, empty);
     }
 
     /**
@@ -394,17 +401,17 @@ public class ManyToOneConcurrentLinkedQueue<E> extends ManyToOneConcurrentLinked
 
     private void headOrdered(final Node<E> head)
     {
-        UNSAFE.putOrderedObject(this, HEAD_OFFSET, head);
+        UnsafeApi.putReferenceRelease(this, HEAD_OFFSET, head);
     }
 
     @SuppressWarnings("unchecked")
     private Node<E> swapTail(final Node<E> newTail)
     {
-        return (Node<E>)UNSAFE.getAndSetObject(this, TAIL_OFFSET, newTail);
+        return (Node<E>)UnsafeApi.getAndSetReference(this, TAIL_OFFSET, newTail);
     }
 
     private boolean casTail(final Node<E> expectedNode, final Node<E> updateNode)
     {
-        return UNSAFE.compareAndSwapObject(this, TAIL_OFFSET, expectedNode, updateNode);
+        return UnsafeApi.compareAndSetReference(this, TAIL_OFFSET, expectedNode, updateNode);
     }
 }

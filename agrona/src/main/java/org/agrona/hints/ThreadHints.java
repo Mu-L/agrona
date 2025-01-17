@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  * Copyright 2016 Gil Tene
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,18 +18,16 @@ package org.agrona.hints;
 
 import org.agrona.SystemUtil;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-
-import static java.lang.invoke.MethodType.methodType;
-
 /**
+ * This class is deprecated. Use {@link Thread#onSpinWait()} directly.
+ * <p>
  * This class captures possible hints that may be used by some
  * runtimes to improve code performance. It is intended to capture hinting
  * behaviours that are implemented in or anticipated to be spec'ed under the
  * {@link java.lang.Thread} class in some Java SE versions, but missing in prior
  * versions.
  */
+@Deprecated
 public final class ThreadHints
 {
     /**
@@ -37,26 +35,8 @@ public final class ThreadHints
      */
     public static final String DISABLE_ON_SPIN_WAIT_PROP_NAME = "org.agrona.hints.disable.onSpinWait";
 
-    private static final MethodHandle ON_SPIN_WAIT_METHOD_HANDLE;
-
-    static
-    {
-        MethodHandle methodHandle = null;
-
-        if (!"true".equals(SystemUtil.getProperty(DISABLE_ON_SPIN_WAIT_PROP_NAME)))
-        {
-            try
-            {
-                final MethodHandles.Lookup lookup = MethodHandles.lookup();
-                methodHandle = lookup.findStatic(Thread.class, "onSpinWait", methodType(void.class));
-            }
-            catch (final Exception ignore)
-            {
-            }
-        }
-
-        ON_SPIN_WAIT_METHOD_HANDLE = methodHandle;
-    }
+    private static final boolean ON_SPIN_WAIT_ENABLED =
+        !"true".equals(SystemUtil.getProperty(DISABLE_ON_SPIN_WAIT_PROP_NAME));
 
     private ThreadHints()
     {
@@ -71,17 +51,9 @@ public final class ThreadHints
      */
     public static void onSpinWait()
     {
-        // Call java.lang.Thread.onSpinWait() on Java SE versions that support it. Do nothing otherwise.
-        // This should optimize away to either nothing or to an inlining of java.lang.Thread.onSpinWait()
-        if (null != ON_SPIN_WAIT_METHOD_HANDLE)
+        if (ON_SPIN_WAIT_ENABLED)
         {
-            try
-            {
-                ON_SPIN_WAIT_METHOD_HANDLE.invokeExact();
-            }
-            catch (final Throwable ignore)
-            {
-            }
+            Thread.onSpinWait();
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
  */
 package org.agrona.concurrent;
 
+import org.agrona.UnsafeApi;
+
 import java.util.Collection;
 import java.util.function.Consumer;
-
-import static org.agrona.UnsafeAccess.UNSAFE;
 
 /**
  * One producer to one consumer concurrent queue that is array backed. The algorithm is a variation of Fast Flow
@@ -26,6 +26,7 @@ import static org.agrona.UnsafeAccess.UNSAFE;
  *
  * @param <E> type of the elements stored in the {@link java.util.Queue}.
  */
+@SuppressWarnings("removal")
 public class OneToOneConcurrentArrayQueue<E> extends AbstractConcurrentArrayQueue<E>
 {
     /**
@@ -66,8 +67,8 @@ public class OneToOneConcurrentArrayQueue<E> extends AbstractConcurrentArrayQueu
 
         final long elementOffset = sequenceToBufferOffset(currentTail, capacity - 1);
 
-        UNSAFE.putOrderedObject(buffer, elementOffset, e);
-        UNSAFE.putOrderedLong(this, TAIL_OFFSET, currentTail + 1);
+        UnsafeApi.putReferenceRelease(buffer, elementOffset, e);
+        UnsafeApi.putLongRelease(this, TAIL_OFFSET, currentTail + 1);
 
         return true;
     }
@@ -82,11 +83,11 @@ public class OneToOneConcurrentArrayQueue<E> extends AbstractConcurrentArrayQueu
         final long currentHead = head;
         final long elementOffset = sequenceToBufferOffset(currentHead, capacity - 1);
 
-        final Object e = UNSAFE.getObjectVolatile(buffer, elementOffset);
+        final Object e = UnsafeApi.getReferenceVolatile(buffer, elementOffset);
         if (null != e)
         {
-            UNSAFE.putOrderedObject(buffer, elementOffset, null);
-            UNSAFE.putOrderedLong(this, HEAD_OFFSET, currentHead + 1);
+            UnsafeApi.putReferenceRelease(buffer, elementOffset, null);
+            UnsafeApi.putLongRelease(this, HEAD_OFFSET, currentHead + 1);
         }
 
         return (E)e;
@@ -115,16 +116,16 @@ public class OneToOneConcurrentArrayQueue<E> extends AbstractConcurrentArrayQueu
         while (nextSequence < limitSequence)
         {
             final long elementOffset = sequenceToBufferOffset(nextSequence, mask);
-            final Object item = UNSAFE.getObjectVolatile(buffer, elementOffset);
+            final Object item = UnsafeApi.getReferenceVolatile(buffer, elementOffset);
 
             if (null == item)
             {
                 break;
             }
 
-            UNSAFE.putOrderedObject(buffer, elementOffset, null);
+            UnsafeApi.putReferenceRelease(buffer, elementOffset, null);
             nextSequence++;
-            UNSAFE.putOrderedLong(this, HEAD_OFFSET, nextSequence);
+            UnsafeApi.putLongRelease(this, HEAD_OFFSET, nextSequence);
             elementConsumer.accept((E)item);
         }
 
@@ -145,15 +146,15 @@ public class OneToOneConcurrentArrayQueue<E> extends AbstractConcurrentArrayQueu
         while (count < limit)
         {
             final long elementOffset = sequenceToBufferOffset(nextSequence, mask);
-            final Object item = UNSAFE.getObjectVolatile(buffer, elementOffset);
+            final Object item = UnsafeApi.getReferenceVolatile(buffer, elementOffset);
             if (null == item)
             {
                 break;
             }
 
-            UNSAFE.putOrderedObject(buffer, elementOffset, null);
+            UnsafeApi.putReferenceRelease(buffer, elementOffset, null);
             nextSequence++;
-            UNSAFE.putOrderedLong(this, HEAD_OFFSET, nextSequence);
+            UnsafeApi.putLongRelease(this, HEAD_OFFSET, nextSequence);
             count++;
             target.add((E)item);
         }

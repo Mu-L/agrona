@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,13 @@ package org.agrona.concurrent.status;
  */
 public abstract class StatusIndicator extends StatusIndicatorReader
 {
+    /**
+     * Default constructor.
+     */
+    public StatusIndicator()
+    {
+    }
+
     /**
      * Sets the current status indication of the component with ordered atomic memory semantics.
      *

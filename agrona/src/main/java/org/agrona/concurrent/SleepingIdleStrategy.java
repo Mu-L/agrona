@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,13 @@
  */
 package org.agrona.concurrent;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 /**
  * When idle this strategy is to sleep for a specified period in nanoseconds.
+ * <p>
+ * If the period is zero or negative, no sleeping is done.
  * <p>
  * This class uses {@link LockSupport#parkNanos(long)} to idle.
  */
@@ -52,6 +55,17 @@ public final class SleepingIdleStrategy implements IdleStrategy
     public SleepingIdleStrategy(final long sleepPeriodNs)
     {
         this.sleepPeriodNs = sleepPeriodNs;
+    }
+
+    /**
+     * Constructed a new strategy that will sleep for a given period when idle.
+     *
+     * @param sleepPeriod the period for which the strategy will sleep when work count is 0.
+     * @param timeUnit the timeunit of the sleepPeriod.
+     */
+    public SleepingIdleStrategy(final long sleepPeriod, final TimeUnit timeUnit)
+    {
+        this(timeUnit.toNanos(sleepPeriod));
     }
 
     /**
