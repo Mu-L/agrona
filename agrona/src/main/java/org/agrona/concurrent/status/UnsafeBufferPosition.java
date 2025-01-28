@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package org.agrona.concurrent.status;
 
-import org.agrona.UnsafeAccess;
+import org.agrona.UnsafeApi;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import java.nio.ByteBuffer;
@@ -25,6 +25,7 @@ import static org.agrona.BitUtil.SIZE_OF_LONG;
 /**
  * Reports a position by recording it in an {@link UnsafeBuffer}.
  */
+@SuppressWarnings("removal")
 public class UnsafeBufferPosition extends Position
 {
     private boolean isClosed = false;
@@ -87,7 +88,7 @@ public class UnsafeBufferPosition extends Position
      */
     public long get()
     {
-        return UnsafeAccess.UNSAFE.getLong(byteArray, addressOffset);
+        return UnsafeApi.getLong(byteArray, addressOffset);
     }
 
     /**
@@ -95,7 +96,7 @@ public class UnsafeBufferPosition extends Position
      */
     public long getVolatile()
     {
-        return UnsafeAccess.UNSAFE.getLongVolatile(byteArray, addressOffset);
+        return UnsafeApi.getLongVolatile(byteArray, addressOffset);
     }
 
     /**
@@ -103,7 +104,7 @@ public class UnsafeBufferPosition extends Position
      */
     public void set(final long value)
     {
-        UnsafeAccess.UNSAFE.putLong(byteArray, addressOffset, value);
+        UnsafeApi.putLong(byteArray, addressOffset, value);
     }
 
     /**
@@ -111,7 +112,7 @@ public class UnsafeBufferPosition extends Position
      */
     public void setOrdered(final long value)
     {
-        UnsafeAccess.UNSAFE.putOrderedLong(byteArray, addressOffset, value);
+        UnsafeApi.putLongRelease(byteArray, addressOffset, value);
     }
 
     /**
@@ -119,7 +120,7 @@ public class UnsafeBufferPosition extends Position
      */
     public void setVolatile(final long value)
     {
-        UnsafeAccess.UNSAFE.putLongVolatile(byteArray, addressOffset, value);
+        UnsafeApi.putLongVolatile(byteArray, addressOffset, value);
     }
 
     /**
@@ -131,9 +132,9 @@ public class UnsafeBufferPosition extends Position
 
         final byte[] array = byteArray;
         final long offset = addressOffset;
-        if (UnsafeAccess.UNSAFE.getLong(array, offset) < proposedValue)
+        if (UnsafeApi.getLong(array, offset) < proposedValue)
         {
-            UnsafeAccess.UNSAFE.putLong(array, offset, proposedValue);
+            UnsafeApi.putLong(array, offset, proposedValue);
             updated = true;
         }
 
@@ -149,9 +150,9 @@ public class UnsafeBufferPosition extends Position
 
         final byte[] array = byteArray;
         final long offset = addressOffset;
-        if (UnsafeAccess.UNSAFE.getLong(array, offset) < proposedValue)
+        if (UnsafeApi.getLong(array, offset) < proposedValue)
         {
-            UnsafeAccess.UNSAFE.putOrderedLong(array, offset, proposedValue);
+            UnsafeApi.putLongRelease(array, offset, proposedValue);
             updated = true;
         }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,18 @@ package org.agrona.concurrent;
 /**
  * Low-latency idle strategy to be employed in loops that do significant work on each iteration such that any
  * work in the idle strategy would be wasteful.
+ *
+ * <p>
+ * The {@link NoOpIdleStrategy} should be used with care:
+ * <ol>
+ *     <li>It could increase power consumption.</li>
+ *     <li>The increased power consumption could lead to thermal throttling causing an overall performance drop.</li>
+ *     <li>It could consume resources that otherwise would be used by the hyper-sibling.</li>
+ *     <li>It could lead to a memory order violation at the end of the loop causing a pipeline reset.</li>
+ * </ol>
+ * The {@link BusySpinIdleStrategy} might be a better alternative in some scenarios. That being said, using
+ * {@link NoOpIdleStrategy} is perfectly fine if the underlying duty cycle loops is performing syscalls (e.g. in sender
+ * and receiver threads in Aeron).
  */
 public final class NoOpIdleStrategy implements IdleStrategy
 {
@@ -30,6 +42,13 @@ public final class NoOpIdleStrategy implements IdleStrategy
      * As there is no instance state then this object can be used to save on allocation.
      */
     public static final NoOpIdleStrategy INSTANCE = new NoOpIdleStrategy();
+
+    /**
+     * Create a new instance.
+     */
+    public NoOpIdleStrategy()
+    {
+    }
 
     /**
      * <b>Note</b>: this implementation will result in no safepoint poll once inlined.

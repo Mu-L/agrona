@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,6 @@ package org.agrona;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -35,6 +32,7 @@ import static java.nio.file.StandardOpenOption.*;
 /**
  * Collection of IO utilities for dealing with files, especially mapping and un-mapping.
  */
+@SuppressWarnings({ "deprecation", "removal" })
 public final class IoUtil
 {
     /**
@@ -46,57 +44,6 @@ public final class IoUtil
     private static final int MAP_READ_ONLY = 0;
     private static final int MAP_READ_WRITE = 1;
     private static final int MAP_PRIVATE = 2;
-
-    static class MappingMethods
-    {
-        static final MethodHandle MAP_ADDRESS;
-        static final MethodHandle MAP_WITH_SYNC_ADDRESS;
-        static final MethodHandle UNMAP_ADDRESS;
-
-        static
-        {
-            try
-            {
-                final Class<?> fileChannelClass = Class.forName("sun.nio.ch.FileChannelImpl");
-                final MethodHandles.Lookup lookup = MethodHandles.lookup();
-
-                MethodHandle mapAddress;
-                MethodHandle mapWithSyncAddress;
-                try
-                {
-                    mapAddress = lookup.unreflect(getFileChannelMethod(
-                        fileChannelClass, "map0", int.class, long.class, long.class));
-                    mapWithSyncAddress = null;
-                }
-                catch (final Exception ex)
-                {
-                    mapAddress = null;
-                    mapWithSyncAddress = lookup.unreflect(getFileChannelMethod(
-                        fileChannelClass, "map0", int.class, long.class, long.class, boolean.class));
-                }
-
-                MAP_ADDRESS = mapAddress;
-                MAP_WITH_SYNC_ADDRESS = mapWithSyncAddress;
-
-                UNMAP_ADDRESS = lookup.unreflect(getFileChannelMethod(
-                    fileChannelClass, "unmap0", long.class, long.class));
-            }
-            catch (final Exception ex)
-            {
-                throw new RuntimeException(ex);
-            }
-        }
-
-        private static Method getFileChannelMethod(
-            final Class<?> fileChannelClass, final String name, final Class<?>... parameterTypes)
-            throws NoSuchMethodException
-        {
-            final Method method = fileChannelClass.getDeclaredMethod(name, parameterTypes);
-            method.setAccessible(true);
-
-            return method;
-        }
-    }
 
     private IoUtil()
     {
@@ -518,57 +465,6 @@ public final class IoUtil
     }
 
     /**
-     * Map a range of a file and return the address at which the range begins.
-     *
-     * @param fileChannel to be mapped.
-     * @param mode        for the mapped region.
-     * @param offset      within the file the mapped region should start.
-     * @param length      of the mapped region.
-     * @return the address at which the mapping starts.
-     */
-    public static long map(
-        final FileChannel fileChannel, final FileChannel.MapMode mode, final long offset, final long length)
-    {
-        try
-        {
-            if (null != MappingMethods.MAP_ADDRESS)
-            {
-                return (long)MappingMethods.MAP_ADDRESS.invoke(fileChannel, getMode(mode), offset, length);
-            }
-            else
-            {
-                return (long)MappingMethods.MAP_WITH_SYNC_ADDRESS.invoke(
-                    fileChannel, getMode(mode), offset, length, false);
-            }
-        }
-        catch (final Throwable ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-
-        return 0;
-    }
-
-    /**
-     * Unmap a region of a file.
-     *
-     * @param fileChannel which has been mapped.
-     * @param address     at which the mapping begins.
-     * @param length      of the mapped region.
-     */
-    public static void unmap(final FileChannel fileChannel, final long address, final long length)
-    {
-        try
-        {
-            MappingMethods.UNMAP_ADDRESS.invoke(address, length);
-        }
-        catch (final Throwable ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-    }
-
-    /**
      * Unmap a {@link ByteBuffer} without waiting for the next GC cycle if its memory mapped.
      *
      * @param buffer to be unmapped.
@@ -622,21 +518,5 @@ public final class IoUtil
     private static String getFileMode(final FileChannel.MapMode mode)
     {
         return mode == READ_ONLY ? "r" : "rw";
-    }
-
-    private static int getMode(final FileChannel.MapMode mode)
-    {
-        if (mode == READ_ONLY)
-        {
-            return MAP_READ_ONLY;
-        }
-        else if (mode == READ_WRITE)
-        {
-            return MAP_READ_WRITE;
-        }
-        else
-        {
-            return MAP_PRIVATE;
-        }
     }
 }

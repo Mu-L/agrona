@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.nio.ByteBuffer;
 
 import static org.agrona.BitUtil.SIZE_OF_LONG;
-import static org.agrona.ExpandableDirectByteBuffer.ALIGNMENT;
+import static org.agrona.ExpandableDirectByteBuffer.MAX_BUFFER_LENGTH;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ExpandableDirectByteBufferTest extends MutableDirectBufferTests
@@ -131,14 +131,14 @@ class ExpandableDirectByteBufferTest extends MutableDirectBufferTests
     }
 
     @Test
-    void wrapAdjustmentDependsOnTheAddressAlignment()
+    void wrapAdjustmentIsAlwaysZero()
     {
         final ExpandableDirectByteBuffer buffer = new ExpandableDirectByteBuffer(1);
         final long originalAddress = BufferUtil.address(buffer.byteBuffer());
-        assertNotEquals(originalAddress, buffer.addressOffset());
+        assertEquals(originalAddress, buffer.addressOffset());
         assertEquals(buffer.addressOffset() - originalAddress, buffer.wrapAdjustment());
         assertEquals(1, buffer.capacity());
-        assertEquals(1 + ALIGNMENT, buffer.byteBuffer().capacity());
+        assertEquals(0, buffer.wrapAdjustment());
 
         buffer.ensureCapacity(5, 12);
 
@@ -146,7 +146,7 @@ class ExpandableDirectByteBufferTest extends MutableDirectBufferTests
         assertNotEquals(originalAddress, newOriginalAddress);
         assertEquals(buffer.addressOffset() - newOriginalAddress, buffer.wrapAdjustment());
         assertEquals(19, buffer.capacity());
-        assertEquals(19 + ALIGNMENT, buffer.byteBuffer().capacity());
+        assertEquals(0, buffer.wrapAdjustment());
     }
 
     @Test
@@ -164,8 +164,8 @@ class ExpandableDirectByteBufferTest extends MutableDirectBufferTests
     }
 
     @ParameterizedTest
-    @ValueSource(ints = { Integer.MIN_VALUE, -1234556, -1 })
-    void checkLimitRejectsNegativeValue(final int limit)
+    @ValueSource(ints = { Integer.MIN_VALUE, -1234556, -1, Integer.MAX_VALUE, Integer.MAX_VALUE - 7 })
+    void checkLimitInvalidValue(final int limit)
     {
         final ExpandableDirectByteBuffer buffer = new ExpandableDirectByteBuffer(16);
         assertThrows(IndexOutOfBoundsException.class, () -> buffer.checkLimit(limit));
@@ -183,5 +183,11 @@ class ExpandableDirectByteBufferTest extends MutableDirectBufferTests
 
         assertTrue(limit < buffer.capacity());
         assertNotSame(originalBuffer, buffer.byteBuffer());
+    }
+
+    @Test
+    void maxBufferLength()
+    {
+        assertEquals(Integer.MAX_VALUE - 8, MAX_BUFFER_LENGTH);
     }
 }

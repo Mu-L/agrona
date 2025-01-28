@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import org.openjdk.jcstress.annotations.State;
 import org.openjdk.jcstress.infra.results.II_Result;
 import org.openjdk.jcstress.infra.results.IJ_Result;
 import org.openjdk.jcstress.infra.results.JJJ_Result;
+import org.openjdk.jcstress.infra.results.ZII_Result;
 
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.agrona.BitUtil.SIZE_OF_INT;
@@ -39,6 +40,10 @@ import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TRAILER_LENG
  */
 public class OneToOneRingBufferTests
 {
+    OneToOneRingBufferTests()
+    {
+    }
+
     /**
      * Test for the {@link OneToOneRingBuffer#write(int, DirectBuffer, int, int)} method.
      */
@@ -85,17 +90,16 @@ public class OneToOneRingBufferTests
             {
                 result.r1 = buffer.getInt(index);
                 result.r2 = buffer.getLong(index + SIZE_OF_INT);
-            });
+            }, 1);
         }
     }
 
     /**
-     * Test for when a writing thread can only succeed if reader read an existing message
+     * Test for when a writing thread can only succeed if reader read an existing message.
      */
     @JCStressTest
-    @Outcome(id = "19, 0", expect = Expect.ACCEPTABLE, desc = "Write before read")
-    @Outcome(id = "19, 42", expect = Expect.ACCEPTABLE, desc = "Read before write")
-    @Outcome(id = "42, 0", expect = Expect.ACCEPTABLE, desc = "Write in the middle of the read")
+    @Outcome(id = "false, 19, 0", expect = Expect.ACCEPTABLE, desc = "Write before read")
+    @Outcome(id = "true, 19, 42", expect = Expect.ACCEPTABLE, desc = "Read before write")
     @State
     public static class WriteFullBuffer
     {
@@ -117,11 +121,13 @@ public class OneToOneRingBufferTests
 
         /**
          * Producer thread.
+         *
+         * @param result object.
          */
         @Actor
-        public void producer()
+        public void producer(final ZII_Result result)
         {
-            ringBuffer.write(MSG_TYPE, srcBuffer, SIZE_OF_INT, SIZE_OF_INT);
+            result.r1 = ringBuffer.write(MSG_TYPE, srcBuffer, SIZE_OF_INT, SIZE_OF_INT);
         }
 
         /**
@@ -130,9 +136,9 @@ public class OneToOneRingBufferTests
          * @param result object.
          */
         @Actor
-        public void consumer(final II_Result result)
+        public void consumer(final ZII_Result result)
         {
-            ringBuffer.read((msgTypeId, buffer, index, length) -> result.r1 = buffer.getInt(index));
+            ringBuffer.read((msgTypeId, buffer, index, length) -> result.r2 = buffer.getInt(index), 1);
         }
 
         /**
@@ -141,9 +147,9 @@ public class OneToOneRingBufferTests
          * @param result object.
          */
         @Arbiter
-        public void arbiter(final II_Result result)
+        public void arbiter(final ZII_Result result)
         {
-            ringBuffer.read((msgTypeId, buffer, index, length) -> result.r2 = buffer.getInt(index));
+            ringBuffer.read((msgTypeId, buffer, index, length) -> result.r3 = buffer.getInt(index), 1);
         }
     }
 
@@ -161,6 +167,10 @@ public class OneToOneRingBufferTests
 
         private final OneToOneRingBuffer ringBuffer =
             new OneToOneRingBuffer(new UnsafeBuffer(allocateDirect(1024)));
+
+        TryClaimCommit()
+        {
+        }
 
         /**
          * Producer thread.
@@ -181,7 +191,7 @@ public class OneToOneRingBufferTests
         @Actor
         public void consumer(final II_Result result)
         {
-            result.r1 = ringBuffer.read((msgTypeId, buffer, index, length) -> result.r2 = buffer.getInt(index + 28));
+            result.r1 = ringBuffer.read((msgTypeId, buffer, index, length) -> result.r2 = buffer.getInt(index + 28), 1);
         }
     }
 
@@ -192,7 +202,6 @@ public class OneToOneRingBufferTests
      */
     @JCStressTest
     @Outcome(id = "0, 0", expect = Expect.ACCEPTABLE, desc = "Reader before writer")
-    @Outcome(id = "1, 42", expect = Expect.FORBIDDEN, desc = "Old value observed")
     @Outcome(id = "1, 111", expect = Expect.ACCEPTABLE, desc = "New value observed")
     @State
     public static class TryClaimAbort
@@ -201,6 +210,10 @@ public class OneToOneRingBufferTests
 
         private final OneToOneRingBuffer ringBuffer = new OneToOneRingBuffer(new UnsafeBuffer(allocateDirect(1024)));
         private final ExpandableArrayBuffer srcBuffer = new ExpandableArrayBuffer();
+
+        TryClaimAbort()
+        {
+        }
 
         /**
          * Producer thread.
@@ -224,7 +237,7 @@ public class OneToOneRingBufferTests
         @Actor
         public void consumer(final II_Result result)
         {
-            result.r1 = ringBuffer.read((msgTypeId, buffer, index, length) -> result.r2 = buffer.getInt(index));
+            result.r1 = ringBuffer.read((msgTypeId, buffer, index, length) -> result.r2 = buffer.getInt(index), 1);
         }
     }
 
@@ -239,6 +252,10 @@ public class OneToOneRingBufferTests
     {
         private final OneToOneRingBuffer ringBuffer =
             new OneToOneRingBuffer(new UnsafeBuffer(allocateDirect(MIN_CAPACITY + TRAILER_LENGTH)));
+
+        CorrelationId()
+        {
+        }
 
         /**
          * First thread.

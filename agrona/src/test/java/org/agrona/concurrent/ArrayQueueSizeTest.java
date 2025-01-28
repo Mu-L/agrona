@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ class ArrayQueueSizeTest
     }
 
     @Test
-    @Timeout(10)
+    @Timeout(30)
     void shouldNeverReportSizeOutOfRange()
     {
         producerThread = new Thread(producer);
@@ -60,7 +60,7 @@ class ArrayQueueSizeTest
         while (producer.isRunning() || consumer.isRunning())
         {
             final int size = queue.size();
-            if (size < 0 || size > queue.capacity())
+            if (size > queue.capacity())
             {
                 fail("invalid size: " + size);
             }

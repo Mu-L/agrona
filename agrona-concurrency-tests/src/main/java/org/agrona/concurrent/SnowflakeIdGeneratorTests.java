@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,9 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class SnowflakeIdGeneratorTests
 {
+    SnowflakeIdGeneratorTests()
+    {
+    }
 
     /**
      * Test to ensure that the generated id is unique.
@@ -35,10 +38,14 @@ public class SnowflakeIdGeneratorTests
     @State
     public static class UniquenessTest
     {
-        public final SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(3);
+        private final SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(3);
 
         private long v1;
         private long v2;
+
+        UniquenessTest()
+        {
+        }
 
         /**
          * First thread calling increment.
@@ -84,7 +91,11 @@ public class SnowflakeIdGeneratorTests
     public static class AdvanceClockTest
     {
         private final AtomicLong clock = new AtomicLong();
-        public final SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(0, 0, 0, 0, clock::getAndIncrement);
+        private final SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(0, 0, 0, 0, clock::getAndIncrement);
+
+        AdvanceClockTest()
+        {
+        }
 
         /**
          * First thread calling increment.
@@ -118,7 +129,11 @@ public class SnowflakeIdGeneratorTests
     @State
     public static class IncrementSequenceTest
     {
-        public final SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(0, 2, 0, 0, () -> 0);
+        private final SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(0, 2, 0, 0, () -> 0);
+
+        IncrementSequenceTest()
+        {
+        }
 
         /**
          * First thread calling increment.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -135,6 +135,20 @@ class AsciiEncodingTest
     void shouldThrowExceptionWhenDecodingByteNonNumericValue()
     {
         assertThrows(AsciiNumberFormatException.class, () -> AsciiEncoding.getDigit(0, (byte)'a'));
+    }
+
+    @ParameterizedTest
+    @ValueSource(bytes = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' })
+    void getDigitFromByte(final byte value)
+    {
+        assertEquals(value - 0x30, AsciiEncoding.getDigit(0, value));
+    }
+
+    @ParameterizedTest
+    @ValueSource(chars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' })
+    void getDigitFromChar(final char value)
+    {
+        assertEquals(value - 0x30, AsciiEncoding.getDigit(0, value));
     }
 
     @Test

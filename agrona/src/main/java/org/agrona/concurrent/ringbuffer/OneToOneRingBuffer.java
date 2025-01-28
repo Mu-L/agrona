@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,9 @@ package org.agrona.concurrent.ringbuffer;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.ControlledMessageHandler;
-import org.agrona.concurrent.MemoryAccess;
 import org.agrona.concurrent.MessageHandler;
+
+import java.lang.invoke.VarHandle;
 
 import static java.lang.Math.max;
 import static org.agrona.BitUtil.align;
@@ -100,7 +101,7 @@ public final class OneToOneRingBuffer implements RingBuffer
         }
 
         buffer.putIntOrdered(lengthOffset(recordIndex), -recordLength);
-        MemoryAccess.releaseFence();
+        VarHandle.releaseFence();
 
         buffer.putBytes(encodedMsgOffset(recordIndex), srcBuffer, offset, length);
         buffer.putInt(typeOffset(recordIndex), msgTypeId);
@@ -127,7 +128,7 @@ public final class OneToOneRingBuffer implements RingBuffer
         }
 
         buffer.putIntOrdered(lengthOffset(recordIndex), -recordLength);
-        MemoryAccess.releaseFence();
+        VarHandle.releaseFence();
         buffer.putInt(typeOffset(recordIndex), msgTypeId);
 
         return encodedMsgOffset(recordIndex);
@@ -472,7 +473,7 @@ public final class OneToOneRingBuffer implements RingBuffer
         {
             buffer.putLong(0, 0L);
             buffer.putIntOrdered(lengthOffset(recordIndex), -padding);
-            MemoryAccess.releaseFence();
+            VarHandle.releaseFence();
 
             buffer.putInt(typeOffset(recordIndex), PADDING_MSG_TYPE_ID);
             buffer.putIntOrdered(lengthOffset(recordIndex), padding);

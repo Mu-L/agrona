@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package org.agrona.concurrent.status;
 
-import org.agrona.UnsafeAccess;
+import org.agrona.UnsafeApi;
 import org.agrona.concurrent.AtomicBuffer;
 
 import java.nio.ByteBuffer;
@@ -66,7 +66,7 @@ public class UnsafeBufferStatusIndicator extends StatusIndicator
      */
     public void setOrdered(final long value)
     {
-        UnsafeAccess.UNSAFE.putOrderedLong(byteArray, addressOffset, value);
+        UnsafeApi.putLongRelease(byteArray, addressOffset, value);
     }
 
     /**
@@ -74,7 +74,7 @@ public class UnsafeBufferStatusIndicator extends StatusIndicator
      */
     public long getVolatile()
     {
-        return UnsafeAccess.UNSAFE.getLongVolatile(byteArray, addressOffset);
+        return UnsafeApi.getLongVolatile(byteArray, addressOffset);
     }
 
     /**

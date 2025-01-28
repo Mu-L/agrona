@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,14 +27,15 @@ public class ShutdownSignalBarrier
     /**
      * Signals the barrier will be registered for.
      */
-    public static final String[] SIGNAL_NAMES = { "INT", "TERM" };
+    private static final String[] SIGNAL_NAMES = { "INT", "TERM" };
     private static final ArrayList<CountDownLatch> LATCHES = new ArrayList<>();
 
     static
     {
-        for (final String signalName : SIGNAL_NAMES)
+        final Runnable handler = ShutdownSignalBarrier::signalAndClearAll;
+        for (final String name : SIGNAL_NAMES)
         {
-            SigInt.register(signalName, () -> LATCHES.forEach(CountDownLatch::countDown));
+            SigInt.register(name, handler);
         }
     }
 
@@ -68,11 +69,7 @@ public class ShutdownSignalBarrier
      */
     public void signalAll()
     {
-        synchronized (LATCHES)
-        {
-            LATCHES.forEach(CountDownLatch::countDown);
-            LATCHES.clear();
-        }
+        signalAndClearAll();
     }
 
     /**
@@ -98,6 +95,15 @@ public class ShutdownSignalBarrier
         catch (final InterruptedException ignore)
         {
             Thread.currentThread().interrupt();
+        }
+    }
+
+    private static void signalAndClearAll()
+    {
+        synchronized (LATCHES)
+        {
+            LATCHES.forEach(CountDownLatch::countDown);
+            LATCHES.clear();
         }
     }
 }

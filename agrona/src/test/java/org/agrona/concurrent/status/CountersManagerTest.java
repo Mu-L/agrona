@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,8 @@ class CountersManagerTest
 {
     private static final int NUMBER_OF_COUNTERS = 4;
     private static final long FREE_TO_REUSE_TIMEOUT = 1000;
+    private static final int TYPE_ID = 101;
+    private static final String LABEL = "label";
 
     private long currentTimestamp = 0;
 
@@ -90,7 +92,7 @@ class CountersManagerTest
         try
         {
             manager.allocate(
-                "label",
+                LABEL,
                 DEFAULT_TYPE_ID,
                 (buffer) ->
                 {
@@ -101,8 +103,10 @@ class CountersManagerTest
         {
             assertEquals(ex, caught);
 
-            final AtomicCounter counter = manager.newCounter("new label");
-            assertEquals(0, counter.id());
+            try (AtomicCounter counter = manager.newCounter("new label"))
+            {
+                assertEquals(0, counter.id());
+            }
 
             return;
         }
@@ -176,6 +180,36 @@ class CountersManagerTest
         final long ownerIdTwo = 222L;
         manager.setCounterOwnerId(counterIdTwo, ownerIdTwo);
         assertEquals(ownerIdTwo, reader.getCounterOwnerId(counterIdTwo));
+    }
+
+    @Test
+    void shouldSetReferenceId()
+    {
+        final int counterId = manager.allocate("abc");
+        assertEquals(DEFAULT_REFERENCE_ID, reader.getCounterReferenceId(counterId));
+
+        final long referenceId = 444L;
+        manager.setCounterReferenceId(counterId, referenceId);
+        assertEquals(referenceId, reader.getCounterReferenceId(counterId));
+    }
+
+    @Test
+    void shouldResetValueAndReferenceIdIfReused()
+    {
+        final int counterIdOne = manager.allocate("abc");
+        assertEquals(DEFAULT_REFERENCE_ID, reader.getCounterReferenceId(counterIdOne));
+
+        final long referenceIdOne = 444L;
+        manager.setCounterReferenceId(counterIdOne, referenceIdOne);
+
+        manager.free(counterIdOne);
+        final int counterIdTwo = manager.allocate("def");
+        assertEquals(counterIdOne, counterIdTwo);
+        assertEquals(DEFAULT_REFERENCE_ID, reader.getCounterReferenceId(counterIdTwo));
+
+        final long referenceIdTwo = 222L;
+        manager.setCounterReferenceId(counterIdTwo, referenceIdTwo);
+        assertEquals(referenceIdTwo, reader.getCounterReferenceId(counterIdTwo));
     }
 
     @Test
@@ -384,11 +418,12 @@ class CountersManagerTest
     @Test
     void shouldGetAndUpdateCounterLabel()
     {
-        final AtomicCounter counter = manager.newCounter("original label");
-
-        assertEquals("original label", counter.label());
-        counter.updateLabel(counter.label() + " with update");
-        assertEquals("original label with update", counter.label());
+        try (AtomicCounter counter = manager.newCounter("original label"))
+        {
+            assertEquals("original label", counter.label());
+            counter.updateLabel(counter.label() + " with update");
+            assertEquals("original label with update", counter.label());
+        }
     }
 
     @Test
@@ -397,18 +432,19 @@ class CountersManagerTest
         final String originalKey = "original key";
         final String updatedKey = "updated key";
 
-        final AtomicCounter counter = manager.newCounter(
-            "label", 101, (keyBuffer) -> keyBuffer.putStringUtf8(0, originalKey));
+        try (AtomicCounter counter = manager.newCounter(
+            LABEL, TYPE_ID, (keyBuffer) -> keyBuffer.putStringUtf8(0, originalKey)))
+        {
+            final StringKeyExtractor keyExtractor = new StringKeyExtractor(counter.id());
 
-        final StringKeyExtractor keyExtractor = new StringKeyExtractor(counter.id());
+            manager.forEach(keyExtractor);
+            assertEquals(originalKey, keyExtractor.key);
 
-        manager.forEach(keyExtractor);
-        assertEquals(originalKey, keyExtractor.key);
+            manager.setCounterKey(counter.id(), (keyBuffer) -> keyBuffer.putStringUtf8(0, updatedKey));
 
-        manager.setCounterKey(counter.id(), (keyBuffer) -> keyBuffer.putStringUtf8(0, updatedKey));
-
-        manager.forEach(keyExtractor);
-        assertEquals(updatedKey, keyExtractor.key);
+            manager.forEach(keyExtractor);
+            assertEquals(updatedKey, keyExtractor.key);
+        }
     }
 
     @Test
@@ -417,22 +453,23 @@ class CountersManagerTest
         final String originalKey = "original key";
         final String updatedKey = "updated key";
 
-        final AtomicCounter counter = manager.newCounter(
-            "label", 101, (keyBuffer) -> keyBuffer.putStringUtf8(0, originalKey));
+        try (AtomicCounter counter = manager.newCounter(
+            LABEL, TYPE_ID, (keyBuffer) -> keyBuffer.putStringUtf8(0, originalKey)))
+        {
+            final StringKeyExtractor keyExtractor = new StringKeyExtractor(counter.id());
 
-        final StringKeyExtractor keyExtractor = new StringKeyExtractor(counter.id());
+            manager.forEach(keyExtractor);
 
-        manager.forEach(keyExtractor);
+            assertEquals(originalKey, keyExtractor.key);
 
-        assertEquals(originalKey, keyExtractor.key);
+            final UnsafeBuffer tempBuffer = new UnsafeBuffer(new byte[128]);
+            final int length = tempBuffer.putStringUtf8(0, updatedKey);
 
-        final UnsafeBuffer tempBuffer = new UnsafeBuffer(new byte[128]);
-        final int length = tempBuffer.putStringUtf8(0, updatedKey);
+            manager.setCounterKey(counter.id(), tempBuffer, 0, length);
 
-        manager.setCounterKey(counter.id(), tempBuffer, 0, length);
-
-        manager.forEach(keyExtractor);
-        assertEquals(updatedKey, keyExtractor.key);
+            manager.forEach(keyExtractor);
+            assertEquals(updatedKey, keyExtractor.key);
+        }
     }
 
     @Test
@@ -440,19 +477,20 @@ class CountersManagerTest
     {
         final String originalKey = "original key";
 
-        final AtomicCounter counter = manager.newCounter(
-            "label", 101, (keyBuffer) -> keyBuffer.putStringUtf8(0, originalKey));
-
-        final UnsafeBuffer tempBuffer = new UnsafeBuffer(new byte[256]);
-
-        try
+        try (AtomicCounter counter = manager.newCounter(
+            LABEL, TYPE_ID, (keyBuffer) -> keyBuffer.putStringUtf8(0, originalKey)))
         {
-            manager.setCounterKey(counter.id(), tempBuffer, 0, MAX_KEY_LENGTH + 1);
-            fail("Should have thrown exception");
-        }
-        catch (final IllegalArgumentException e)
-        {
-            assertTrue(true);
+            final UnsafeBuffer tempBuffer = new UnsafeBuffer(new byte[256]);
+
+            try
+            {
+                manager.setCounterKey(counter.id(), tempBuffer, 0, MAX_KEY_LENGTH + 1);
+                fail("Should have thrown exception");
+            }
+            catch (final IllegalArgumentException e)
+            {
+                assertTrue(true);
+            }
         }
     }
 
@@ -468,8 +506,9 @@ class CountersManagerTest
 
         public void accept(final int counterId, final int typeId, final DirectBuffer keyBuffer, final String label)
         {
-            if (counterId == id)
+            if (counterId == id && typeId == TYPE_ID)
             {
+                assertEquals(LABEL, label);
                 key = keyBuffer.getStringUtf8(0);
             }
         }
@@ -478,10 +517,11 @@ class CountersManagerTest
     @Test
     void shouldAppendLabel()
     {
-        final AtomicCounter counter = manager.newCounter("original label");
-
-        assertEquals("original label", counter.label());
-        counter.appendToLabel(" with update");
-        assertEquals("original label with update", counter.label());
+        try (AtomicCounter counter = manager.newCounter("original label"))
+        {
+            assertEquals("original label", counter.label());
+            counter.appendToLabel(" with update");
+            assertEquals("original label with update", counter.label());
+        }
     }
 }

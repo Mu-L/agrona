@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,8 +35,6 @@ import java.util.stream.IntStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -461,12 +459,25 @@ class Int2IntHashMapTest
         final int testValue = 7;
         final int testValue2 = 8;
 
-        assertThat(map.computeIfPresent(testKey, (k, v) -> testValue), nullValue());
-        assertThat(map.get(testKey), nullValue());
+        assertNull(map.computeIfPresent(testKey, (k, v) -> testValue));
+        assertNull(map.get(testKey));
 
         map.put(testKey, testValue);
         assertThat(map.computeIfPresent(testKey, (k, v) -> testValue2), is(testValue2));
         assertThat(map.get(testKey), is(testValue2));
+    }
+
+    @Test
+    void computeIfPresentShouldDeleteEntryIfMissingValue()
+    {
+        final int key = 707070707;
+        final int value = Integer.MIN_VALUE;
+        map.put(key, value);
+
+        assertEquals(MISSING_VALUE, map.computeIfPresent(key, (k, v) -> MISSING_VALUE));
+
+        assertEquals(0, map.size());
+        assertEquals(MISSING_VALUE, map.get(key));
     }
 
     @Test
@@ -495,9 +506,36 @@ class Int2IntHashMapTest
 
         assertThat(map.compute(testKey, (k, v) -> testValue), is(testValue));
         assertThat(map.get(testKey), is(testValue));
+        assertEquals(1, map.size());
 
         assertThat(map.compute(testKey, (k, v) -> testValue2), is(testValue2));
         assertThat(map.get(testKey), is(testValue2));
+        assertEquals(1, map.size());
+    }
+
+    @Test
+    void computeShouldDeleteKeyMappingIfMissingValue()
+    {
+        final int key = MISSING_VALUE;
+        final int value = 0;
+        map.put(key, value);
+
+        assertEquals(MISSING_VALUE, map.compute(key, (k, v) -> MISSING_VALUE));
+
+        assertEquals(0, map.size());
+    }
+
+    @Test
+    void computeIsANoOpIfKeyIsUnknownAndMissingValue()
+    {
+        final int key = -303;
+        final int value = 404;
+        map.put(key, value);
+
+        assertEquals(MISSING_VALUE, map.compute(999, (k, v) -> MISSING_VALUE));
+
+        assertEquals(1, map.size());
+        assertEquals(value, map.get(key));
     }
 
     @Test
@@ -691,7 +729,7 @@ class Int2IntHashMapTest
         }
 
         final String mapAsAString = "{19=1019, 1=1001, 11=1011, 7=1007, 3=1003, 12=1012}";
-        assertThat(map.toString(), equalTo(mapAsAString));
+        assertEquals(mapAsAString, map.toString());
     }
 
     @Test
@@ -737,6 +775,21 @@ class Int2IntHashMapTest
         }
 
         assertEquals(expected, map);
+    }
+
+    @Test
+    void shouldCopyConstructAndBeEqual()
+    {
+        final int[] testEntries = { 3, 1, 19, 7, 11, 12, 7 };
+
+        final Int2IntHashMap map = new Int2IntHashMap(Integer.MIN_VALUE);
+        for (final int testEntry : testEntries)
+        {
+            map.put(testEntry, testEntry + 1);
+        }
+
+        final Int2IntHashMap mapCopy = new Int2IntHashMap(map);
+        assertEquals(map, mapCopy);
     }
 
     @Test
@@ -875,14 +928,16 @@ class Int2IntHashMapTest
         final int key = 42;
         final int oldValue = 0;
         final int value = 5;
-        final int expectedNewValue = 8;
         final IntIntFunction remappingFunction = (val1, val2) -> val1 + val2 + 3;
         map.put(key, oldValue);
 
-        assertEquals(expectedNewValue, map.merge(key, value, remappingFunction));
-
+        assertEquals(8, map.merge(key, value, remappingFunction));
         assertEquals(1, map.size());
-        assertEquals(expectedNewValue, map.get(key));
+        assertEquals(8, map.get(key));
+
+        assertEquals(-6, map.merge(key, -17, remappingFunction));
+        assertEquals(1, map.size());
+        assertEquals(-6, map.get(key));
     }
 
     @Test
@@ -897,6 +952,14 @@ class Int2IntHashMapTest
         assertEquals(MISSING_VALUE, map.merge(key, value, remappingFunction));
 
         assertEquals(0, map.size());
+    }
+
+    @Test
+    void mergeShouldRejectAMissingValue()
+    {
+        final IllegalArgumentException exception =
+            assertThrowsExactly(IllegalArgumentException.class, () -> map.merge(42, MISSING_VALUE, (v1, v2) -> 1000));
+        assertEquals("cannot accept missingValue", exception.getMessage());
     }
 
     @Test
@@ -1175,6 +1238,69 @@ class Int2IntHashMapTest
 
         assertFalse(map.entrySet().removeIfInt(filter));
         assertEquals(2, map.size());
+    }
+
+    @Test
+    void shouldRemoveAnExistingKeyMapping()
+    {
+        final int key = 42;
+        final int value = -1_000;
+        map.put(key, value);
+
+        assertEquals(value, map.remove(key));
+
+        assertEquals(0, map.size());
+    }
+
+    @Test
+    void shouldNotRemoveAnNonExistingKey()
+    {
+        final int key = 42;
+        final int value = -1_000;
+        map.put(key, value);
+
+        assertEquals(MISSING_VALUE, map.remove(0));
+
+        assertEquals(1, map.size());
+        assertEquals(value, map.get(key));
+    }
+
+    @Test
+    void shouldRemoveByKeyAndValue()
+    {
+        final int key = 42;
+        final int value = -1_000;
+        map.put(key, value);
+
+        assertTrue(map.remove(key, value));
+
+        assertEquals(0, map.size());
+    }
+
+    @Test
+    void shouldNotRemoveIfKeyDoesNotMatch()
+    {
+        final int key = 42;
+        final int value = -1_000;
+        map.put(key, value);
+
+        assertFalse(map.remove(0, value));
+
+        assertEquals(1, map.size());
+        assertEquals(value, map.get(key));
+    }
+
+    @Test
+    void shouldNotRemoveIfValueDoesNotMatch()
+    {
+        final int key = 42;
+        final int value = -1_000;
+        map.put(key, value);
+
+        assertFalse(map.remove(key, 42));
+
+        assertEquals(1, map.size());
+        assertEquals(value, map.get(key));
     }
 
     private void assertEntryIs(final Entry<Integer, Integer> entry, final int expectedKey, final int expectedValue)

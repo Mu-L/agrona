@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,10 @@
  */
 package org.agrona.concurrent;
 
-import org.agrona.hints.ThreadHints;
+import org.agrona.UnsafeApi;
 
 import java.util.Collection;
 import java.util.function.Consumer;
-
-import static org.agrona.UnsafeAccess.UNSAFE;
 
 /**
  * Many producer to many consumer concurrent queue that is array backed.
@@ -29,11 +27,11 @@ import static org.agrona.UnsafeAccess.UNSAFE;
  * <a href="http://www.1024cores.net/home/lock-free-algorithms/queues/bounded-mpmc-queue">MPMC queue</a>.
  * <p>
  * <b>Note:</b> This queue breaks the contract for peek and poll in that it can return null when the queue has no item
- * available but size could be greater than zero if an offer is in progress. This is due to the offer being a multi-step
- * process which can start and be interrupted before completion, the thread will later be resumed and the offer process
- * completes. Other methods, such as peek and poll, could spin internally waiting on the offer to complete to provide
- * sequentially consistency across methods but this can have a detrimental effect in a resource starved system. This
- * internal spinning eats up a CPU core and prevents other threads making progress resulting in latency spikes. To
+ * available but size could be greater than zero if an offer is in progress. This is due to the offer being a multiple
+ * step process which can start and be interrupted before completion, the thread will later be resumed and the offer
+ * process completes. Other methods, such as peek and poll, could spin internally waiting on the offer to complete to
+ * provide sequentially consistency across methods but this can have a detrimental effect in a resource starved system.
+ * This internal spinning eats up a CPU core and prevents other threads making progress resulting in latency spikes. To
  * avoid this a more relaxed approach is taken in that an in-progress offer is not waited on to complete. The poll
  * method has similar properties for the multi-consumer implementation.
  * <p>
@@ -41,9 +39,10 @@ import static org.agrona.UnsafeAccess.UNSAFE;
  *
  * @param <E> type of the elements stored in the {@link java.util.Queue}.
  */
+@SuppressWarnings("removal")
 public class ManyToManyConcurrentArrayQueue<E> extends AbstractConcurrentArrayQueue<E>
 {
-    private static final int SEQUENCES_ARRAY_BASE = UNSAFE.arrayBaseOffset(long[].class);
+    private static final int SEQUENCES_ARRAY_BASE = UnsafeApi.arrayBaseOffset(long[].class);
 
     private final long[] sequences;
 
@@ -72,7 +71,7 @@ public class ManyToManyConcurrentArrayQueue<E> extends AbstractConcurrentArrayQu
             sequences[i] = i;
         }
 
-        UNSAFE.putLongVolatile(sequences, sequenceArrayOffset(0, sequences.length - 1), 0);
+        UnsafeApi.putLongVolatile(sequences, sequenceArrayOffset(0, sequences.length - 1), 0);
         this.sequences = sequences;
     }
 
@@ -94,22 +93,22 @@ public class ManyToManyConcurrentArrayQueue<E> extends AbstractConcurrentArrayQu
         {
             final long currentTail = tail;
             final long sequenceOffset = sequenceArrayOffset(currentTail, mask);
-            final long sequence = UNSAFE.getLongVolatile(sequences, sequenceOffset);
+            final long sequence = UnsafeApi.getLongVolatile(sequences, sequenceOffset);
 
             if (sequence < currentTail)
             {
                 return false;
             }
 
-            if (UNSAFE.compareAndSwapLong(this, TAIL_OFFSET, currentTail, currentTail + 1L))
+            if (UnsafeApi.compareAndSetLong(this, TAIL_OFFSET, currentTail, currentTail + 1L))
             {
-                UNSAFE.putObject(buffer, sequenceToBufferOffset(currentTail, mask), e);
-                UNSAFE.putOrderedLong(sequences, sequenceOffset, currentTail + 1L);
+                UnsafeApi.putReference(buffer, sequenceToBufferOffset(currentTail, mask), e);
+                UnsafeApi.putLongRelease(sequences, sequenceOffset, currentTail + 1L);
 
                 return true;
             }
 
-            ThreadHints.onSpinWait();
+            Thread.onSpinWait();
         }
     }
 
@@ -127,7 +126,7 @@ public class ManyToManyConcurrentArrayQueue<E> extends AbstractConcurrentArrayQu
         {
             final long currentHead = head;
             final long sequenceOffset = sequenceArrayOffset(currentHead, mask);
-            final long sequence = UNSAFE.getLongVolatile(sequences, sequenceOffset);
+            final long sequence = UnsafeApi.getLongVolatile(sequences, sequenceOffset);
             final long attemptedHead = currentHead + 1L;
 
             if (sequence < attemptedHead)
@@ -135,17 +134,17 @@ public class ManyToManyConcurrentArrayQueue<E> extends AbstractConcurrentArrayQu
                 return null;
             }
 
-            if (UNSAFE.compareAndSwapLong(this, HEAD_OFFSET, currentHead, attemptedHead))
+            if (UnsafeApi.compareAndSetLong(this, HEAD_OFFSET, currentHead, attemptedHead))
             {
                 final long elementOffset = sequenceToBufferOffset(currentHead, mask);
-                final Object e = UNSAFE.getObject(buffer, elementOffset);
-                UNSAFE.putObject(buffer, elementOffset, null);
-                UNSAFE.putOrderedLong(sequences, sequenceOffset, attemptedHead + mask);
+                final Object e = UnsafeApi.getReference(buffer, elementOffset);
+                UnsafeApi.putReference(buffer, elementOffset, null);
+                UnsafeApi.putLongRelease(sequences, sequenceOffset, attemptedHead + mask);
 
                 return (E)e;
             }
 
-            ThreadHints.onSpinWait();
+            Thread.onSpinWait();
         }
     }
 
@@ -163,7 +162,7 @@ public class ManyToManyConcurrentArrayQueue<E> extends AbstractConcurrentArrayQu
         {
             final long currentHead = head;
             final long sequenceOffset = sequenceArrayOffset(currentHead, mask);
-            final long sequence = UNSAFE.getLongVolatile(sequences, sequenceOffset);
+            final long sequence = UnsafeApi.getLongVolatile(sequences, sequenceOffset);
             final long attemptedHead = currentHead + 1L;
 
             if (sequence < attemptedHead)
@@ -174,7 +173,7 @@ public class ManyToManyConcurrentArrayQueue<E> extends AbstractConcurrentArrayQu
             if (sequence == attemptedHead)
             {
                 final long elementOffset = sequenceToBufferOffset(currentHead, mask);
-                final Object e = UNSAFE.getObject(buffer, elementOffset);
+                final Object e = UnsafeApi.getReference(buffer, elementOffset);
 
                 if (currentHead == head)
                 {
@@ -182,7 +181,7 @@ public class ManyToManyConcurrentArrayQueue<E> extends AbstractConcurrentArrayQu
                 }
             }
 
-            ThreadHints.onSpinWait();
+            Thread.onSpinWait();
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ public class DirectBufferInputStream extends InputStream
      *
      * @param buffer to wrap.
      */
+    @SuppressWarnings("this-escape")
     public DirectBufferInputStream(final DirectBuffer buffer)
     {
         wrap(buffer, 0, buffer.capacity());
@@ -53,6 +54,7 @@ public class DirectBufferInputStream extends InputStream
      * @param offset into the buffer.
      * @param length in bytes.
      */
+    @SuppressWarnings("this-escape")
     public DirectBufferInputStream(final DirectBuffer buffer, final int offset, final int length)
     {
         wrap(buffer, offset, length);
@@ -99,9 +101,9 @@ public class DirectBufferInputStream extends InputStream
     }
 
     /**
-     * The length of the underlying buffer to use
+     * The length of the underlying buffer to use.
      *
-     * @return length of the underlying buffer to use
+     * @return length of the underlying buffer to use.
      */
     public int length()
     {

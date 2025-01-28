@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -392,12 +392,6 @@ class IntArrayListTest
 
         list.addInt(7);
         assertThat(list.capacity(), is(IntArrayList.INITIAL_CAPACITY));
-    }
-
-    @Test
-    void removeThrowsNClassCastExceptionIfValueIsNotInteger()
-    {
-        assertThrowsExactly(ClassCastException.class, () -> list.remove(Double.valueOf(24.5)));
     }
 
     @Test

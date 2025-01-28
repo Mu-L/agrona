@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,10 @@ import static org.agrona.BitUtil.*;
  *  |                          Owner Id                             |
  *  |                                                               |
  *  +---------------------------------------------------------------+
- *  |                     104 bytes of padding                     ...
+ *  |                        Reference Id                           |
+ *  |                                                               |
+ *  +---------------------------------------------------------------+
+ *  |                      96 bytes of padding                     ...
  * ...                                                              |
  *  +---------------------------------------------------------------+
  *  |                   Repeats to end of buffer                   ...
@@ -131,6 +134,11 @@ public class CountersReader
     public static final long DEFAULT_OWNER_ID = 0;
 
     /**
+     * Default reference id of a counter when none is set.
+     */
+    public static final long DEFAULT_REFERENCE_ID = 0;
+
+    /**
      * Can be used to representing a null counter id when passed as an argument.
      */
     public static final int NULL_COUNTER_ID = -1;
@@ -167,6 +175,12 @@ public class CountersReader
      * used to associate counters to an owner for lifecycle management.
      */
     public static final int OWNER_ID_OFFSET = REGISTRATION_ID_OFFSET + SIZE_OF_LONG;
+
+    /**
+     * Offset in the record at which the reference id field is stored. This id can be used to associate this
+     * counter with a registration id for something else, such as an Image, Subscription, Publication, etc.
+     */
+    public static final int REFERENCE_ID_OFFSET = OWNER_ID_OFFSET + SIZE_OF_LONG;
 
     /**
      * Offset in the record at which the type id field is stored.
@@ -517,6 +531,21 @@ public class CountersReader
     }
 
     /**
+     * Get the reference id for a given counter id as a normal read. The id may be assigned when the
+     * counter is allocated to help associate this counter with a registration id for an Image, Subscription,
+     * Publication, etc.
+     *
+     * @param counterId to be read.
+     * @return the current reference id of the counter.
+     * @see #DEFAULT_REFERENCE_ID
+     */
+    public long getCounterReferenceId(final int counterId)
+    {
+        validateCounterId(counterId);
+        return valuesBuffer.getLong(counterOffset(counterId) + REFERENCE_ID_OFFSET);
+    }
+
+    /**
      * Get the state for a given counter id as a volatile read.
      *
      * @param counterId to be read.
@@ -545,7 +574,7 @@ public class CountersReader
     }
 
     /**
-     * Get the deadline (ms) for when a given counter id may be reused as a volatile read.
+     * Get the deadline (ms) for when a given counter id may be reused.
      *
      * @param counterId to be read.
      * @return deadline (ms) for when a given counter id may be reused or {@link #NOT_FREE_TO_REUSE} if currently
@@ -554,11 +583,11 @@ public class CountersReader
     public long getFreeForReuseDeadline(final int counterId)
     {
         validateCounterId(counterId);
-        return metaDataBuffer.getLongVolatile(metaDataOffset(counterId) + FREE_FOR_REUSE_DEADLINE_OFFSET);
+        return metaDataBuffer.getLong(metaDataOffset(counterId) + FREE_FOR_REUSE_DEADLINE_OFFSET);
     }
 
     /**
-     * Get the label for a given counter id.
+     * Get the label for a given counter id as a volatile read.
      *
      * @param counterId to be read.
      * @return the label for the given counter id.

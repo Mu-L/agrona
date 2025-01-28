@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,9 @@ import static org.agrona.collections.CollectionUtil.validateLoadFactor;
 
 /**
  * An open-addressing with linear probing hash map, same algorithm as {@link Int2IntHashMap}.
+ *
+ * @param <K> the type of keys maintained by this map.
+ * @param <V> the type of mapped values.
  */
 public class Object2ObjectHashMap<K, V> implements Map<K, V>
 {
@@ -68,6 +71,8 @@ public class Object2ObjectHashMap<K, V> implements Map<K, V>
     }
 
     /**
+     * Create a new instance with specified parameters.
+     *
      * @param initialCapacity       for the map to override {@link #MIN_CAPACITY}
      * @param loadFactor            for the map to override {@link Hashing#DEFAULT_LOAD_FACTOR}.
      * @param shouldAvoidAllocation should allocation be avoided by caching iterators and map entries.
@@ -80,6 +85,21 @@ public class Object2ObjectHashMap<K, V> implements Map<K, V>
         this.shouldAvoidAllocation = shouldAvoidAllocation;
 
         capacity(findNextPositivePowerOfTwo(Math.max(MIN_CAPACITY, initialCapacity)));
+    }
+
+    /**
+     * Copy construct a new map from an existing one.
+     *
+     * @param mapToCopy for construction.
+     */
+    public Object2ObjectHashMap(final Object2ObjectHashMap<K, V> mapToCopy)
+    {
+        this.loadFactor = mapToCopy.loadFactor;
+        this.resizeThreshold = mapToCopy.resizeThreshold;
+        this.size = mapToCopy.size;
+        this.shouldAvoidAllocation = mapToCopy.shouldAvoidAllocation;
+
+        entries = mapToCopy.entries.clone();
     }
 
     /**
@@ -740,7 +760,7 @@ public class Object2ObjectHashMap<K, V> implements Map<K, V>
         }
 
         /**
-         * {@inheritDoc}
+         * Removes from the underlying collection the last element returned by this iterator.
          */
         public void remove()
         {
@@ -769,6 +789,13 @@ public class Object2ObjectHashMap<K, V> implements Map<K, V>
     public final class KeyIterator extends AbstractIterator implements Iterator<K>
     {
         /**
+         * Create a new instance.
+         */
+        public KeyIterator()
+        {
+        }
+
+        /**
          * {@inheritDoc}
          */
         @SuppressWarnings("unchecked")
@@ -784,6 +811,13 @@ public class Object2ObjectHashMap<K, V> implements Map<K, V>
      */
     public final class ValueIterator extends AbstractIterator implements Iterator<V>
     {
+        /**
+         * Create a new instance.
+         */
+        public ValueIterator()
+        {
+        }
+
         /**
          * {@inheritDoc}
          */
@@ -801,6 +835,13 @@ public class Object2ObjectHashMap<K, V> implements Map<K, V>
         extends AbstractIterator
         implements Iterator<Entry<K, V>>, Entry<K, V>
     {
+        /**
+         * Create a new instance.
+         */
+        public EntryIterator()
+        {
+        }
+
         /**
          * {@inheritDoc}
          */
@@ -900,6 +941,8 @@ public class Object2ObjectHashMap<K, V> implements Map<K, V>
             private V v;
 
             /**
+             * Create a new entry.
+             *
              * @param k key.
              * @param v value.
              */
@@ -979,6 +1022,13 @@ public class Object2ObjectHashMap<K, V> implements Map<K, V>
         private final KeyIterator keyIterator = shouldAvoidAllocation ? new KeyIterator() : null;
 
         /**
+         * Create a new instance.
+         */
+        public KeySet()
+        {
+        }
+
+        /**
          * {@inheritDoc}
          */
         public KeyIterator iterator()
@@ -1053,6 +1103,13 @@ public class Object2ObjectHashMap<K, V> implements Map<K, V>
         private final ValueIterator valueIterator = shouldAvoidAllocation ? new ValueIterator() : null;
 
         /**
+         * Create a new instance.
+         */
+        public ValueCollection()
+        {
+        }
+
+        /**
          * {@inheritDoc}
          */
         public ValueIterator iterator()
@@ -1109,6 +1166,13 @@ public class Object2ObjectHashMap<K, V> implements Map<K, V>
     public final class EntrySet extends AbstractSet<Map.Entry<K, V>>
     {
         private final EntryIterator entryIterator = shouldAvoidAllocation ? new EntryIterator() : null;
+
+        /**
+         * Create a new instance.
+         */
+        public EntrySet()
+        {
+        }
 
         /**
          * {@inheritDoc}

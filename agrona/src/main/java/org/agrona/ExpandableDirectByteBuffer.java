@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,17 +38,14 @@ public class ExpandableDirectByteBuffer extends AbstractMutableDirectBuffer
     /**
      * Maximum length to which the underlying buffer can grow.
      */
-    public static final int MAX_BUFFER_LENGTH = 1024 * 1024 * 1024;
+    public static final int MAX_BUFFER_LENGTH = Integer.MAX_VALUE - 8;
 
     /**
      * Initial capacity of the buffer from which it will expand.
      */
     public static final int INITIAL_CAPACITY = 128;
 
-    static final int ALIGNMENT = 32;
-
     private ByteBuffer byteBuffer;
-    private int alignmentOffset;
 
     /**
      * Create an {@link ExpandableDirectByteBuffer} with an initial length of {@link #INITIAL_CAPACITY}.
@@ -65,10 +62,8 @@ public class ExpandableDirectByteBuffer extends AbstractMutableDirectBuffer
      */
     public ExpandableDirectByteBuffer(final int initialCapacity)
     {
-        byteBuffer = ByteBuffer.allocateDirect(initialCapacity + ALIGNMENT);
-        final long address = address(byteBuffer);
-        alignmentOffset = calculateAlignmentOffset(address);
-        addressOffset = address + alignmentOffset;
+        byteBuffer = ByteBuffer.allocateDirect(initialCapacity);
+        addressOffset = address(byteBuffer);
         capacity = initialCapacity;
     }
 
@@ -157,7 +152,7 @@ public class ExpandableDirectByteBuffer extends AbstractMutableDirectBuffer
      */
     public int wrapAdjustment()
     {
-        return alignmentOffset;
+        return 0;
     }
 
     /**
@@ -198,15 +193,13 @@ public class ExpandableDirectByteBuffer extends AbstractMutableDirectBuffer
             }
 
             final int newCapacity = calculateExpansion(currentCapacity, resultingPosition);
-            final ByteBuffer newBuffer = ByteBuffer.allocateDirect(newCapacity + ALIGNMENT);
+            final ByteBuffer newBuffer = ByteBuffer.allocateDirect(newCapacity);
             final long newAddress = address(newBuffer);
-            final int newOffset = calculateAlignmentOffset(newAddress);
 
-            getBytes(0, newBuffer, newOffset, currentCapacity);
+            getBytes(0, newBuffer, 0, currentCapacity);
 
             byteBuffer = newBuffer;
-            addressOffset = newAddress + newOffset;
-            alignmentOffset = newOffset;
+            addressOffset = newAddress;
             capacity = newCapacity;
         }
     }
@@ -227,11 +220,4 @@ public class ExpandableDirectByteBuffer extends AbstractMutableDirectBuffer
 
         return (int)value;
     }
-
-    private static int calculateAlignmentOffset(final long address)
-    {
-        final int remainder = (int)(address & (ALIGNMENT - 1));
-        return ALIGNMENT - remainder;
-    }
-
 }

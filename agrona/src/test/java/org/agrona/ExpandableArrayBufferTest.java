@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package org.agrona;
 
+import java.nio.ByteOrder;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -144,4 +145,19 @@ class ExpandableArrayBufferTest extends MutableDirectBufferTests
         assertTrue(limit <= buffer.capacity());
         assertNotSame(originalArray, buffer.byteArray());
     }
+
+    @Test
+    void shouldThrowExceptionForReadingIntAboveCapacity()
+    {
+        final MutableDirectBuffer buffer = newBuffer(3);
+        assertThrows(IndexOutOfBoundsException.class, () -> buffer.getInt(4, ByteOrder.BIG_ENDIAN));
+    }
+
+    @Test
+    void shouldThrowExceptionForReadingLongAboveCapacity()
+    {
+        final MutableDirectBuffer buffer = newBuffer(3);
+        assertThrows(IndexOutOfBoundsException.class, () -> buffer.getLong(4, ByteOrder.BIG_ENDIAN));
+    }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,6 +59,7 @@ public class OffsetEpochNanoClock implements EpochNanoClock
      *                               recalculation enables the system to minimise clock drift if the system clock is
      *                               updated.
      */
+    @SuppressWarnings("this-escape")
     public OffsetEpochNanoClock(
         final int maxMeasurementRetries, final long measurementThresholdNs, final long resampleIntervalNs)
     {

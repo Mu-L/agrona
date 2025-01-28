@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,10 @@ import static org.agrona.BitUtil.SIZE_OF_INT;
  *  |                          Owner Id                             |
  *  |                                                               |
  *  +---------------------------------------------------------------+
- *  |                     104 bytes of padding                     ...
+ *  |                        Reference Id                           |
+ *  |                                                               |
+ *  +---------------------------------------------------------------+
+ *  |                     96 bytes of padding                     ...
  * ...                                                              |
  *  +---------------------------------------------------------------+
  *  |                   Repeats to end of buffer                   ...
@@ -393,7 +396,7 @@ public class CountersManager extends CountersReader
     }
 
     /**
-     * Set an {@link AtomicCounter} value based for a counter id with volatile memory ordering.
+     * Set an {@link AtomicCounter} value based for a counter id with ordered memory ordering.
      *
      * @param counterId to be set.
      * @param value     to set for the counter.
@@ -405,7 +408,7 @@ public class CountersManager extends CountersReader
     }
 
     /**
-     * Set an {@link AtomicCounter} registration id for a counter id with volatile memory ordering.
+     * Set an {@link AtomicCounter} registration id for a counter id with ordered memory ordering.
      *
      * @param counterId      to be set.
      * @param registrationId to set for the counter.
@@ -426,6 +429,18 @@ public class CountersManager extends CountersReader
     {
         validateCounterId(counterId);
         valuesBuffer.putLong(counterOffset(counterId) + OWNER_ID_OFFSET, ownerId);
+    }
+
+    /**
+     * Set an {@link AtomicCounter} reference id for a counter id.
+     *
+     * @param counterId   to be set.
+     * @param referenceId to set for the counter.
+     */
+    public void setCounterReferenceId(final int counterId, final long referenceId)
+    {
+        validateCounterId(counterId);
+        valuesBuffer.putLong(counterOffset(counterId) + REFERENCE_ID_OFFSET, referenceId);
     }
 
     /**
@@ -482,6 +497,19 @@ public class CountersManager extends CountersReader
         appendLabel(metaDataOffset(counterId), label);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public String toString()
+    {
+        return getClass().getSimpleName() + "{" +
+            "freeToReuseTimeoutMs=" + freeToReuseTimeoutMs +
+            ", highWaterMarkId=" + highWaterMarkId +
+            ", freeList=" + freeList +
+            ", epochClock=" + epochClock +
+            '}';
+    }
+
     private int nextCounterId()
     {
         if (!freeList.isEmpty())
@@ -498,6 +526,7 @@ public class CountersManager extends CountersReader
                     final int offset = counterOffset(counterId);
                     valuesBuffer.putLongOrdered(offset + REGISTRATION_ID_OFFSET, DEFAULT_REGISTRATION_ID);
                     valuesBuffer.putLong(offset + OWNER_ID_OFFSET, DEFAULT_OWNER_ID);
+                    valuesBuffer.putLong(offset + REFERENCE_ID_OFFSET, DEFAULT_REFERENCE_ID);
                     valuesBuffer.putLongOrdered(offset, 0L);
 
                     return counterId;
@@ -530,7 +559,7 @@ public class CountersManager extends CountersReader
 
     private void appendLabel(final int recordOffset, final String suffix)
     {
-        final int existingLength = metaDataBuffer.getInt(recordOffset + LABEL_OFFSET);
+        final int existingLength = metaDataBuffer.getIntVolatile(recordOffset + LABEL_OFFSET);
         final int maxSuffixLength = MAX_LABEL_LENGTH - existingLength;
 
         if (StandardCharsets.US_ASCII == labelCharset)

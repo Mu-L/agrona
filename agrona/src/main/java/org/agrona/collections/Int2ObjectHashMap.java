@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,8 +68,8 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
     /**
      * Constructs map with given initial capacity and load factory and enables caching of iterators.
      *
-     * @param initialCapacity for the backing array
-     * @param loadFactor      limit for resizing on puts
+     * @param initialCapacity for the backing array.
+     * @param loadFactor      limit for resizing on puts.
      */
     public Int2ObjectHashMap(
         @DoNotSub final int initialCapacity,
@@ -81,8 +81,8 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
     /**
      * Construct a new map allowing a configuration for initial capacity and load factor.
      *
-     * @param initialCapacity       for the backing array
-     * @param loadFactor            limit for resizing on puts
+     * @param initialCapacity       for the backing array.
+     * @param loadFactor            limit for resizing on puts.
      * @param shouldAvoidAllocation should allocation be avoided by caching iterators and map entries.
      */
     public Int2ObjectHashMap(
@@ -223,7 +223,7 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
     /**
      * Overloaded version of {@link Map#containsKey(Object)} that takes a primitive int key.
      *
-     * @param key for indexing the {@link Map}
+     * @param key for indexing the {@link Map}.
      * @return true if the key is found otherwise false.
      */
     public boolean containsKey(final int key)
@@ -968,10 +968,10 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
     }
 
     /**
-     * Primitive specialised version of {@link Map#replace(Object, Object)}
+     * Primitive specialised version of {@link Map#replace(Object, Object)}.
      *
-     * @param key   key with which the specified value is associated
-     * @param value value to be associated with the specified key
+     * @param key   key with which the specified value is associated.
+     * @param value value to be associated with the specified key.
      * @return the previous value associated with the specified key, or
      * {@code null} if there was no mapping for the key.
      */
@@ -1002,12 +1002,12 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
     }
 
     /**
-     * Primitive specialised version of {@link Map#replace(Object, Object, Object)}
+     * Primitive specialised version of {@link Map#replace(Object, Object, Object)}.
      *
-     * @param key      key with which the specified value is associated
-     * @param oldValue value expected to be associated with the specified key
-     * @param newValue value to be associated with the specified key
-     * @return {@code true} if the value was replaced
+     * @param key      key with which the specified value is associated.
+     * @param oldValue value expected to be associated with the specified key.
+     * @param newValue value to be associated with the specified key.
+     * @return {@code true} if the value was replaced.
      */
     @SuppressWarnings("unchecked")
     public boolean replace(final int key, final V oldValue, final V newValue)
@@ -1150,16 +1150,19 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    // Sets and Collections
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-
     /**
      * Set of keys which supports optionally cached iterators to avoid allocation.
      */
     public final class KeySet extends AbstractSet<Integer>
     {
         private final KeyIterator keyIterator = shouldAvoidAllocation ? new KeyIterator() : null;
+
+        /**
+         * Create a new instance.
+         */
+        public KeySet()
+        {
+        }
 
         /**
          * {@inheritDoc}
@@ -1263,6 +1266,13 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
         private final ValueIterator valueIterator = shouldAvoidAllocation ? new ValueIterator() : null;
 
         /**
+         * Create a new instance.
+         */
+        public ValueCollection()
+        {
+        }
+
+        /**
          * {@inheritDoc}
          */
         public ValueIterator iterator()
@@ -1328,6 +1338,13 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
     public final class EntrySet extends AbstractSet<Map.Entry<Integer, V>>
     {
         private final EntryIterator entryIterator = shouldAvoidAllocation ? new EntryIterator() : null;
+
+        /**
+         * Create a new instance.
+         */
+        public EntrySet()
+        {
+        }
 
         /**
          * {@inheritDoc}
@@ -1436,10 +1453,6 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
             return array;
         }
     }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    // Iterators
-    ///////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Base iterator implementation that contains basic logic of traversing the element in the backing array.
@@ -1568,6 +1581,13 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
     public final class ValueIterator extends AbstractIterator<V>
     {
         /**
+         * Create a new instance.
+         */
+        public ValueIterator()
+        {
+        }
+
+        /**
          * {@inheritDoc}
          */
         public V next()
@@ -1583,6 +1603,13 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
      */
     public final class KeyIterator extends AbstractIterator<Integer>
     {
+        /**
+         * Create a new instance.
+         */
+        public KeyIterator()
+        {
+        }
+
         /**
          * {@inheritDoc}
          */
@@ -1611,6 +1638,13 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
         extends AbstractIterator<Entry<Integer, V>>
         implements Entry<Integer, V>
     {
+        /**
+         * Create a new instance.
+         */
+        public EntryIterator()
+        {
+        }
+
         /**
          * {@inheritDoc}
          */
@@ -1687,6 +1721,8 @@ public class Int2ObjectHashMap<V> implements Map<Integer, V>
             private final V v;
 
             /**
+             * Create a new entry.
+             *
              * @param k key.
              * @param v value.
              */

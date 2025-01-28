@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,6 +54,8 @@ public class Int2IntHashMap implements Map<Integer, Integer>
     private EntrySet entrySet;
 
     /**
+     * Create a map instance that does not allocate iterators with a specified {@code missingValue}.
+     *
      * @param missingValue for the map that represents null.
      */
     public Int2IntHashMap(final int missingValue)
@@ -62,6 +64,8 @@ public class Int2IntHashMap implements Map<Integer, Integer>
     }
 
     /**
+     * Create a map instance that does not allocate iterators with specified parameters.
+     *
      * @param initialCapacity for the map to override {@link #MIN_CAPACITY}
      * @param loadFactor      for the map to override {@link Hashing#DEFAULT_LOAD_FACTOR}.
      * @param missingValue    for the map that represents null.
@@ -75,6 +79,8 @@ public class Int2IntHashMap implements Map<Integer, Integer>
     }
 
     /**
+     * Create a map instance with specified parameters.
+     *
      * @param initialCapacity       for the map to override {@link #MIN_CAPACITY}
      * @param loadFactor            for the map to override {@link Hashing#DEFAULT_LOAD_FACTOR}.
      * @param missingValue          for the map that represents null.
@@ -93,6 +99,22 @@ public class Int2IntHashMap implements Map<Integer, Integer>
         this.shouldAvoidAllocation = shouldAvoidAllocation;
 
         capacity(findNextPositivePowerOfTwo(Math.max(MIN_CAPACITY, initialCapacity)));
+    }
+
+    /**
+     * Copy construct a new map from an existing one.
+     *
+     * @param mapToCopy for construction.
+     */
+    public Int2IntHashMap(final Int2IntHashMap mapToCopy)
+    {
+        this.loadFactor = mapToCopy.loadFactor;
+        this.resizeThreshold = mapToCopy.resizeThreshold;
+        this.size = mapToCopy.size;
+        this.shouldAvoidAllocation = mapToCopy.shouldAvoidAllocation;
+        this.missingValue = mapToCopy.missingValue;
+
+        entries = mapToCopy.entries.clone();
     }
 
     /**
@@ -300,21 +322,21 @@ public class Int2IntHashMap implements Map<Integer, Integer>
         final int[] newEntries = entries;
         @DoNotSub final int mask = newEntries.length - 1;
 
-        for (@DoNotSub int keyIndex = 0; keyIndex < length; keyIndex += 2)
+        for (@DoNotSub int valueIndex = 1; valueIndex < length; valueIndex += 2)
         {
-            final int value = oldEntries[keyIndex + 1]; // lgtm[java/index-out-of-bounds]
+            final int value = oldEntries[valueIndex];
             if (missingValue != value)
             {
-                final int key = oldEntries[keyIndex];
-                @DoNotSub int index = Hashing.evenHash(key, mask);
+                final int key = oldEntries[valueIndex - 1];
+                @DoNotSub int newKeyIndex = Hashing.evenHash(key, mask);
 
-                while (missingValue != newEntries[index + 1])
+                while (missingValue != newEntries[newKeyIndex + 1])
                 {
-                    index = next(index, mask);
+                    newKeyIndex = next(newKeyIndex, mask);
                 }
 
-                newEntries[index] = key;
-                newEntries[index + 1] = value;
+                newEntries[newKeyIndex] = key;
+                newEntries[newKeyIndex + 1] = value;
             }
         }
     }
@@ -454,7 +476,7 @@ public class Int2IntHashMap implements Map<Integer, Integer>
         {
             entries[index] = key;
             entries[index + 1] = value;
-            size++;
+            ++size;
             increaseCapacity();
         }
 
@@ -491,7 +513,7 @@ public class Int2IntHashMap implements Map<Integer, Integer>
         {
             value = remappingFunction.applyAsInt(key, value);
             entries[index + 1] = value;
-            if (value == missingValue)
+            if (missingValue == value)
             {
                 size--;
                 compactChain(index);
@@ -534,7 +556,7 @@ public class Int2IntHashMap implements Map<Integer, Integer>
             if (oldValue == missingValue)
             {
                 entries[index] = key;
-                size++;
+                ++size;
                 increaseCapacity();
             }
         }
@@ -808,10 +830,10 @@ public class Int2IntHashMap implements Map<Integer, Integer>
         if (missingValue != newValue)
         {
             entries[index + 1] = newValue;
-            if (oldValue == missingValue)
+            if (missingValue == oldValue)
             {
                 entries[index] = key;
-                size++;
+                ++size;
                 increaseCapacity();
             }
         }
@@ -1180,7 +1202,7 @@ public class Int2IntHashMap implements Map<Integer, Integer>
         }
 
         /**
-         * {@inheritDoc}
+         * Removes from the underlying collection the last element returned by this iterator.
          */
         public void remove()
         {
@@ -1207,6 +1229,13 @@ public class Int2IntHashMap implements Map<Integer, Integer>
     public final class KeyIterator extends AbstractIterator implements Iterator<Integer>
     {
         /**
+         * Create a new instance.
+         */
+        public KeyIterator()
+        {
+        }
+
+        /**
          * {@inheritDoc}
          */
         public Integer next()
@@ -1231,6 +1260,13 @@ public class Int2IntHashMap implements Map<Integer, Integer>
      */
     public final class ValueIterator extends AbstractIterator implements Iterator<Integer>
     {
+        /**
+         * Create a new instance.
+         */
+        public ValueIterator()
+        {
+        }
+
         /**
          * {@inheritDoc}
          */
@@ -1258,6 +1294,13 @@ public class Int2IntHashMap implements Map<Integer, Integer>
         extends AbstractIterator
         implements Iterator<Entry<Integer, Integer>>, Entry<Integer, Integer>
     {
+        /**
+         * Create a new instance.
+         */
+        public EntryIterator()
+        {
+        }
+
         /**
          * {@inheritDoc}
          */
@@ -1460,6 +1503,13 @@ public class Int2IntHashMap implements Map<Integer, Integer>
         private final KeyIterator keyIterator = shouldAvoidAllocation ? new KeyIterator() : null;
 
         /**
+         * Create a new instance.
+         */
+        public KeySet()
+        {
+        }
+
+        /**
          * {@inheritDoc}
          */
         public KeyIterator iterator()
@@ -1551,6 +1601,13 @@ public class Int2IntHashMap implements Map<Integer, Integer>
         private final ValueIterator valueIterator = shouldAvoidAllocation ? new ValueIterator() : null;
 
         /**
+         * Create a new instance.
+         */
+        public ValueCollection()
+        {
+        }
+
+        /**
          * {@inheritDoc}
          */
         public ValueIterator iterator()
@@ -1624,6 +1681,13 @@ public class Int2IntHashMap implements Map<Integer, Integer>
     public final class EntrySet extends AbstractSet<Map.Entry<Integer, Integer>>
     {
         private final EntryIterator entryIterator = shouldAvoidAllocation ? new EntryIterator() : null;
+
+        /**
+         * Create a new instance.
+         */
+        public EntrySet()
+        {
+        }
 
         /**
          * {@inheritDoc}

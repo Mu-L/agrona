@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,28 +32,28 @@ class Int2ObjectHashMapNotAvoidingAllocationTest extends Int2ObjectHashMapTest
     @Test
     void valuesIteratorIsNotCached()
     {
-        assertNotSame(intToObjectMap.values().iterator(), intToObjectMap.values().iterator());
+        assertNotSame(map.values().iterator(), map.values().iterator());
     }
 
     @Test
     void keysIteratorIsNotCached()
     {
-        assertNotSame(intToObjectMap.keySet().iterator(), intToObjectMap.keySet().iterator());
+        assertNotSame(map.keySet().iterator(), map.keySet().iterator());
     }
 
     @Test
     void entryIteratorIsNotCached()
     {
-        assertNotSame(intToObjectMap.entrySet().iterator(), intToObjectMap.entrySet().iterator());
+        assertNotSame(map.entrySet().iterator(), map.entrySet().iterator());
     }
 
     @Test
     void entriesAreAllocatedByEntriesIterator()
     {
-        intToObjectMap.put(1, "1");
-        intToObjectMap.put(2, "2");
+        map.put(1, "1");
+        map.put(2, "2");
 
-        final Iterator<Entry<Integer, String>> entryIterator = intToObjectMap.entrySet().iterator();
+        final Iterator<Entry<Integer, String>> entryIterator = map.entrySet().iterator();
         final Entry<Integer, String> entry1 = entryIterator.next();
         final Entry<Integer, String> entry2 = entryIterator.next();
 

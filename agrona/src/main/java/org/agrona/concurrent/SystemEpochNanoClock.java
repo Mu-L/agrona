@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,13 @@ package org.agrona.concurrent;
  */
 public class SystemEpochNanoClock implements EpochNanoClock
 {
+    /**
+     * Create a new instance.
+     */
+    public SystemEpochNanoClock()
+    {
+    }
+
     /**
      * {@inheritDoc}
      */

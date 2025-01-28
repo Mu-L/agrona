@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
-import java.util.function.Predicate;
 
 import static org.agrona.BitUtil.findNextPositivePowerOfTwo;
 import static org.agrona.collections.CollectionUtil.validateLoadFactor;
@@ -154,9 +153,9 @@ public class ObjectHashSet<T> extends AbstractSet<T>
     }
 
     /**
-     * @param value the value to add
-     * @return true if the collection has changed, false otherwise
-     * @throws NullPointerException if the value is null
+     * @param value the value to add.
+     * @return true if the collection has changed, false otherwise.
+     * @throws NullPointerException if the value is null.
      */
     public boolean add(final T value)
     {
@@ -227,8 +226,8 @@ public class ObjectHashSet<T> extends AbstractSet<T>
     }
 
     /**
-     * @param value the value to remove
-     * @return true if the value was present, false otherwise
+     * @param value the value to remove.
+     * @return true if the value was present, false otherwise.
      */
     public boolean remove(final Object value)
     {
@@ -365,15 +364,22 @@ public class ObjectHashSet<T> extends AbstractSet<T>
      */
     public boolean addAll(final Collection<? extends T> coll)
     {
-        return disjunction(coll, this::add);
+        boolean acc = false;
+        for (final T t : coll)
+        {
+            // Deliberate strict evaluation
+            acc |= add(t);
+        }
+
+        return acc;
     }
 
     /**
      * Alias for {@link #addAll(Collection)} for the specialized case when adding another ObjectHashSet,
-     * avoids boxing and allocations
+     * avoids boxing and allocations.
      *
      * @param coll containing the values to be added.
-     * @return {@code true} if this set changed as a result of the call
+     * @return {@code true} if this set changed as a result of the call.
      */
     public boolean addAll(final ObjectHashSet<T> coll)
     {
@@ -395,8 +401,8 @@ public class ObjectHashSet<T> extends AbstractSet<T>
      * <p>
      * NB: garbage free in the identical case, allocates otherwise.
      *
-     * @param other the other set to subtract
-     * @return null if identical, otherwise the set of differences
+     * @param other the other set to subtract.
+     * @return null if identical, otherwise the set of differences.
      */
     public ObjectHashSet<T> difference(final ObjectHashSet<T> other)
     {
@@ -423,15 +429,22 @@ public class ObjectHashSet<T> extends AbstractSet<T>
      */
     public boolean removeAll(final Collection<?> coll)
     {
-        return disjunction(coll, this::remove);
+        boolean acc = false;
+        for (final Object t : coll)
+        {
+            // Deliberate strict evaluation
+            acc |= remove(t);
+        }
+
+        return acc;
     }
 
     /**
      * Alias for {@link #removeAll(Collection)} for the specialized case when removing another ObjectHashSet,
-     * avoids boxing and allocations
+     * avoids boxing and allocations.
      *
      * @param coll containing the values to be removed.
-     * @return {@code true} if this set changed as a result of the call
+     * @return {@code true} if this set changed as a result of the call.
      */
     public boolean removeAll(final ObjectHashSet<T> coll)
     {
@@ -443,18 +456,6 @@ public class ObjectHashSet<T> extends AbstractSet<T>
             {
                 acc |= remove(value);
             }
-        }
-
-        return acc;
-    }
-
-    private static <T> boolean disjunction(final Collection<T> coll, final Predicate<T> predicate)
-    {
-        boolean acc = false;
-        for (final T t : coll)
-        {
-            // Deliberate strict evaluation
-            acc |= predicate.test(t);
         }
 
         return acc;
@@ -603,6 +604,13 @@ public class ObjectHashSet<T> extends AbstractSet<T>
         private int stopCounter;
         private boolean isPositionValid = false;
 
+        /**
+         * Creates a new instance.
+         */
+        public ObjectIterator()
+        {
+        }
+
         ObjectIterator reset()
         {
             this.remaining = size;
@@ -656,6 +664,8 @@ public class ObjectHashSet<T> extends AbstractSet<T>
         }
 
         /**
+         * Get the next value.
+         *
          * @return the next value.
          */
         public T nextValue()

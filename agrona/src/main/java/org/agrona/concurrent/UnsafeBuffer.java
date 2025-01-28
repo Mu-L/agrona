@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,13 @@ package org.agrona.concurrent;
 import org.agrona.AbstractMutableDirectBuffer;
 import org.agrona.BufferUtil;
 import org.agrona.DirectBuffer;
+import org.agrona.UnsafeApi;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import static org.agrona.BitUtil.*;
 import static org.agrona.BufferUtil.*;
-import static org.agrona.UnsafeAccess.UNSAFE;
 import static org.agrona.collections.ArrayUtil.EMPTY_BYTE_ARRAY;
 
 /**
@@ -41,20 +41,29 @@ import static org.agrona.collections.ArrayUtil.EMPTY_BYTE_ARRAY;
  * <b>Note:</b> The wrap methods on this class are not thread safe. Concurrent access should only happen after a
  * successful wrap.
  */
+@SuppressWarnings("removal")
 public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicBuffer
 {
     /**
+     * Buffer alignment in bytes to ensure atomic word accesses.
+     *
      * @see AtomicBuffer#ALIGNMENT
      */
     public static final int ALIGNMENT = AtomicBuffer.ALIGNMENT;
 
     /**
+     * Should bounds-checks operations be done or not. Controlled by the
+     * {@link DirectBuffer#DISABLE_BOUNDS_CHECKS_PROP_NAME} system property.
+     *
      * @see DirectBuffer#DISABLE_BOUNDS_CHECKS_PROP_NAME
      */
     public static final String DISABLE_BOUNDS_CHECKS_PROP_NAME = DirectBuffer.DISABLE_BOUNDS_CHECKS_PROP_NAME;
 
     /**
-     * @see DirectBuffer#SHOULD_BOUNDS_CHECK
+     * Should bounds-checks operations be done or not. Controlled by the
+     * {@link DirectBuffer#DISABLE_BOUNDS_CHECKS_PROP_NAME} system property.
+     *
+     * @see DirectBuffer#DISABLE_BOUNDS_CHECKS_PROP_NAME
      */
     public static final boolean SHOULD_BOUNDS_CHECK = DirectBuffer.SHOULD_BOUNDS_CHECK;
 
@@ -64,6 +73,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
     /**
      * Empty constructor for a reusable wrapper buffer.
      */
+    @SuppressWarnings("this-escape")
     public UnsafeBuffer()
     {
         wrap(EMPTY_BYTE_ARRAY);
@@ -75,6 +85,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
      * @param buffer to which the view is attached.
      * @see #wrap(byte[])
      */
+    @SuppressWarnings("this-escape")
     public UnsafeBuffer(final byte[] buffer)
     {
         wrap(buffer);
@@ -88,6 +99,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
      * @param length in bytes of the buffer included in the view.
      * @see #wrap(byte[], int, int)
      */
+    @SuppressWarnings("this-escape")
     public UnsafeBuffer(final byte[] buffer, final int offset, final int length)
     {
         wrap(buffer, offset, length);
@@ -99,6 +111,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
      *
      * @param buffer to which the view is attached.
      */
+    @SuppressWarnings("this-escape")
     public UnsafeBuffer(final ByteBuffer buffer)
     {
         wrap(buffer);
@@ -112,28 +125,31 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
      * @param offset in bytes within the buffer to begin.
      * @param length in bytes of the buffer included in the view.
      */
+    @SuppressWarnings("this-escape")
     public UnsafeBuffer(final ByteBuffer buffer, final int offset, final int length)
     {
         wrap(buffer, offset, length);
     }
 
     /**
-     * Attach a view to an existing {@link DirectBuffer}
+     * Attach a view to an existing {@link DirectBuffer}.
      *
      * @param buffer to which the view is attached.
      */
+    @SuppressWarnings("this-escape")
     public UnsafeBuffer(final DirectBuffer buffer)
     {
         wrap(buffer);
     }
 
     /**
-     * Attach a view to an existing {@link DirectBuffer}
+     * Attach a view to an existing {@link DirectBuffer}.
      *
      * @param buffer to which the view is attached.
      * @param offset in bytes within the buffer to begin.
      * @param length in bytes of the buffer included in the view.
      */
+    @SuppressWarnings("this-escape")
     public UnsafeBuffer(final DirectBuffer buffer, final int offset, final int length)
     {
         wrap(buffer, offset, length);
@@ -142,9 +158,10 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
     /**
      * Attach a view to an off-heap memory region by address. This is useful for interacting with native libraries.
      *
-     * @param address where the memory begins off-heap
-     * @param length  of the buffer from the given address
+     * @param address where the memory begins off-heap.
+     * @param length  of the buffer from the given address.
      */
+    @SuppressWarnings("this-escape")
     public UnsafeBuffer(final long address, final int length)
     {
         wrap(address, length);
@@ -365,7 +382,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_LONG);
         }
 
-        return UNSAFE.getLongVolatile(byteArray, addressOffset + index);
+        return UnsafeApi.getLongVolatile(byteArray, addressOffset + index);
     }
 
     /**
@@ -378,7 +395,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_LONG);
         }
 
-        UNSAFE.putLongVolatile(byteArray, addressOffset + index, value);
+        UnsafeApi.putLongVolatile(byteArray, addressOffset + index, value);
     }
 
     /**
@@ -391,7 +408,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_LONG);
         }
 
-        UNSAFE.putOrderedLong(byteArray, addressOffset + index, value);
+        UnsafeApi.putLongRelease(byteArray, addressOffset + index, value);
     }
 
     /**
@@ -404,12 +421,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_LONG);
         }
 
-        final long offset = addressOffset + index;
-        final byte[] array = this.byteArray;
-        final long value = UNSAFE.getLong(array, offset);
-        UNSAFE.putOrderedLong(array, offset, value + increment);
-
-        return value;
+        return UnsafeApi.getAndAddLongRelease(byteArray, addressOffset + index, increment);
     }
 
     /**
@@ -422,7 +434,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_LONG);
         }
 
-        return UNSAFE.compareAndSwapLong(byteArray, addressOffset + index, expectedValue, updateValue);
+        return UnsafeApi.compareAndSetLong(byteArray, addressOffset + index, expectedValue, updateValue);
     }
 
     /**
@@ -435,7 +447,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_LONG);
         }
 
-        return UNSAFE.getAndSetLong(byteArray, addressOffset + index, value);
+        return UnsafeApi.getAndSetLong(byteArray, addressOffset + index, value);
     }
 
     /**
@@ -448,7 +460,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_LONG);
         }
 
-        return UNSAFE.getAndAddLong(byteArray, addressOffset + index, delta);
+        return UnsafeApi.getAndAddLong(byteArray, addressOffset + index, delta);
     }
 
     /**
@@ -461,7 +473,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_INT);
         }
 
-        return UNSAFE.getIntVolatile(byteArray, addressOffset + index);
+        return UnsafeApi.getIntVolatile(byteArray, addressOffset + index);
     }
 
     /**
@@ -474,7 +486,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_INT);
         }
 
-        UNSAFE.putIntVolatile(byteArray, addressOffset + index, value);
+        UnsafeApi.putIntVolatile(byteArray, addressOffset + index, value);
     }
 
     /**
@@ -487,7 +499,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_INT);
         }
 
-        UNSAFE.putOrderedInt(byteArray, addressOffset + index, value);
+        UnsafeApi.putIntRelease(byteArray, addressOffset + index, value);
     }
 
     /**
@@ -500,12 +512,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_INT);
         }
 
-        final long offset = addressOffset + index;
-        final byte[] array = this.byteArray;
-        final int value = UNSAFE.getInt(array, offset);
-        UNSAFE.putOrderedInt(array, offset, value + increment);
-
-        return value;
+        return UnsafeApi.getAndAddIntRelease(byteArray, addressOffset + index, increment);
     }
 
     /**
@@ -518,7 +525,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_INT);
         }
 
-        return UNSAFE.compareAndSwapInt(byteArray, addressOffset + index, expectedValue, updateValue);
+        return UnsafeApi.compareAndSetInt(byteArray, addressOffset + index, expectedValue, updateValue);
     }
 
     /**
@@ -531,7 +538,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_INT);
         }
 
-        return UNSAFE.getAndSetInt(byteArray, addressOffset + index, value);
+        return UnsafeApi.getAndSetInt(byteArray, addressOffset + index, value);
     }
 
     /**
@@ -544,7 +551,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_INT);
         }
 
-        return UNSAFE.getAndAddInt(byteArray, addressOffset + index, delta);
+        return UnsafeApi.getAndAddInt(byteArray, addressOffset + index, delta);
     }
 
     /**
@@ -557,7 +564,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_SHORT);
         }
 
-        return UNSAFE.getShortVolatile(byteArray, addressOffset + index);
+        return UnsafeApi.getShortVolatile(byteArray, addressOffset + index);
     }
 
     /**
@@ -570,7 +577,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_SHORT);
         }
 
-        UNSAFE.putShortVolatile(byteArray, addressOffset + index, value);
+        UnsafeApi.putShortVolatile(byteArray, addressOffset + index, value);
     }
 
     /**
@@ -583,7 +590,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_BYTE);
         }
 
-        return UNSAFE.getByteVolatile(byteArray, addressOffset + index);
+        return UnsafeApi.getByteVolatile(byteArray, addressOffset + index);
     }
 
     /**
@@ -596,7 +603,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_BYTE);
         }
 
-        UNSAFE.putByteVolatile(byteArray, addressOffset + index, value);
+        UnsafeApi.putByteVolatile(byteArray, addressOffset + index, value);
     }
 
     /**
@@ -609,7 +616,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_CHAR);
         }
 
-        return UNSAFE.getCharVolatile(byteArray, addressOffset + index);
+        return UnsafeApi.getCharVolatile(byteArray, addressOffset + index);
     }
 
     /**
@@ -622,7 +629,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
             boundsCheck0(index, SIZE_OF_CHAR);
         }
 
-        UNSAFE.putCharVolatile(byteArray, addressOffset + index, value);
+        UnsafeApi.putCharVolatile(byteArray, addressOffset + index, value);
     }
 
 
@@ -634,7 +641,7 @@ public class UnsafeBuffer extends AbstractMutableDirectBuffer implements AtomicB
         return "UnsafeBuffer{" +
             "addressOffset=" + addressOffset +
             ", capacity=" + capacity +
-            ", byteArray=" + byteArray + // lgtm [java/print-array]
+            ", byteArray=" + (null == byteArray ? "null" : ("byte[" + byteArray.length + "]")) +
             ", byteBuffer=" + byteBuffer +
             '}';
     }

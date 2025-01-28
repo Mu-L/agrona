@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,17 @@ import static org.agrona.collections.CollectionUtil.validatePositivePowerOfTwo;
  */
 public class Int2ObjectCache<V> implements Map<Integer, V>
 {
+    /*
+     * Example for numSets=2 and setSize=4:
+     *
+     *               newest               oldest
+     * keys:        [  0  ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ]
+     * values:      [  0  ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ]
+     *              <-         set 0          -><-         set 1          ->
+     * shuffleUp:       <---   <---   <---  X
+     * shuffleDown:    X  --->   --->   --->
+     */
+
     private long cachePuts = 0;
     private long cacheHits = 0;
     private long cacheMisses = 0;
@@ -742,13 +753,14 @@ public class Int2ObjectCache<V> implements Map<Integer, V>
     {
         final int[] keys = this.keys;
         final Object[] values = this.values;
-        values[toIndex] = null;
 
         for (@DoNotSub int i = fromIndex; i < toIndex; i++)
         {
             values[i] = values[i + 1];
             keys[i] = keys[i + 1];
         }
+
+        values[toIndex] = null;
     }
 
     @DoNotSub private void shuffleDown(final int setBeginIndex)
@@ -775,13 +787,13 @@ public class Int2ObjectCache<V> implements Map<Integer, V>
     public void clear()
     {
         final Object[] values = this.values;
-        for (@DoNotSub int i = 0, size = values.length; i < size; i++)
+        for (@DoNotSub int i = 0, length = values.length; i < length; i++)
         {
             final Object value = values[i];
             if (null != value)
             {
                 values[i] = null;
-                this.size--;
+                size--;
 
                 evictionConsumer.accept((V)value);
             }
@@ -943,16 +955,19 @@ public class Int2ObjectCache<V> implements Map<Integer, V>
         return result;
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    // Sets and Collections
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-
     /**
      * A key set implementation which supports cached iterator to avoid allocation.
      */
     public final class KeySet extends AbstractSet<Integer>
     {
         private final KeyIterator iterator = new KeyIterator();
+
+        /**
+         * Create a new instance.
+         */
+        public KeySet()
+        {
+        }
 
         /**
          * {@inheritDoc}
@@ -1024,6 +1039,13 @@ public class Int2ObjectCache<V> implements Map<Integer, V>
         private final ValueIterator iterator = new ValueIterator();
 
         /**
+         * Create a new instance.
+         */
+        public ValueCollection()
+        {
+        }
+
+        /**
          * {@inheritDoc}
          */
         @DoNotSub public int size()
@@ -1082,6 +1104,13 @@ public class Int2ObjectCache<V> implements Map<Integer, V>
         private final EntryIterator iterator = new EntryIterator();
 
         /**
+         * Create a new instance.
+         */
+        public EntrySet()
+        {
+        }
+
+        /**
          * {@inheritDoc}
          */
         @DoNotSub public int size()
@@ -1123,10 +1152,6 @@ public class Int2ObjectCache<V> implements Map<Integer, V>
             throw new UnsupportedOperationException("Cannot remove from EntrySet");
         }
     }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    // Iterators
-    ///////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Base iterator implementation that contains basic logic of traversing the element in the backing array.
@@ -1207,6 +1232,13 @@ public class Int2ObjectCache<V> implements Map<Integer, V>
     public final class ValueIterator extends AbstractIterator<V>
     {
         /**
+         * Create a new instance.
+         */
+        public ValueIterator()
+        {
+        }
+
+        /**
          * {@inheritDoc}
          */
         @SuppressWarnings("unchecked")
@@ -1222,6 +1254,13 @@ public class Int2ObjectCache<V> implements Map<Integer, V>
      */
     public final class KeyIterator extends AbstractIterator<Integer>
     {
+        /**
+         * Create a new instance.
+         */
+        public KeyIterator()
+        {
+        }
+
         /**
          * {@inheritDoc}
          */
@@ -1249,6 +1288,13 @@ public class Int2ObjectCache<V> implements Map<Integer, V>
         extends AbstractIterator<Entry<Integer, V>>
         implements Entry<Integer, V>
     {
+        /**
+         * Create a new instance.
+         */
+        public EntryIterator()
+        {
+        }
+
         /**
          * {@inheritDoc}
          */

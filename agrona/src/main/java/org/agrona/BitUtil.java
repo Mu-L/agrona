@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 Real Logic Limited.
+ * Copyright 2014-2025 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,42 +25,42 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 public final class BitUtil
 {
     /**
-     * Size of a byte in bytes
+     * Size of a byte in bytes.
      */
     public static final int SIZE_OF_BYTE = 1;
 
     /**
-     * Size of a boolean in bytes
+     * Size of a boolean in bytes.
      */
     public static final int SIZE_OF_BOOLEAN = 1;
 
     /**
-     * Size of a char in bytes
+     * Size of a char in bytes.
      */
     public static final int SIZE_OF_CHAR = 2;
 
     /**
-     * Size of a short in bytes
+     * Size of a short in bytes.
      */
     public static final int SIZE_OF_SHORT = 2;
 
     /**
-     * Size of an int in bytes
+     * Size of an int in bytes.
      */
     public static final int SIZE_OF_INT = 4;
 
     /**
-     * Size of a float in bytes
+     * Size of a float in bytes.
      */
     public static final int SIZE_OF_FLOAT = 4;
 
     /**
-     * Size of a long in bytes
+     * Size of a long in bytes.
      */
     public static final int SIZE_OF_LONG = 8;
 
     /**
-     * Size of a double in bytes
+     * Size of a double in bytes.
      */
     public static final int SIZE_OF_DOUBLE = 8;
 
@@ -184,11 +184,11 @@ public final class BitUtil
     {
         final byte[] outputBuffer = new byte[buffer.length >> 1];
 
-        for (int i = 0; i < buffer.length; i += 2)
+        for (int i = 1; i < buffer.length; i += 2)
         {
-            final int hi = FROM_HEX_DIGIT_TABLE[buffer[i]] << 4;
-            final int lo = FROM_HEX_DIGIT_TABLE[buffer[i + 1]]; // lgtm[java/index-out-of-bounds]
-            outputBuffer[i >> 1] = (byte)(hi | lo);
+            final int hi = FROM_HEX_DIGIT_TABLE[buffer[i - 1]] << 4;
+            final int lo = FROM_HEX_DIGIT_TABLE[buffer[i]];
+            outputBuffer[(i - 1) >> 1] = (byte)(hi | lo);
         }
 
         return outputBuffer;
